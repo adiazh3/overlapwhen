@@ -101,6 +101,7 @@ export const createEvent = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("events").insert({
       ...data,
       description: data.description || null,
+      dates: data.dates ?? null,
       id,
       admin_token,
       expires_at: new Date(Date.now() + 21 * 86400000).toISOString(),
