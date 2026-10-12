@@ -18,11 +18,12 @@ export type EventRow = {
   final_start: string | null;
   final_end: string | null;
   created_at: string;
+  dates: string[] | null;
 };
 export type ResponseRow = { id: string; name: string; slots: number[]; updated_at: string };
 
 const EVENT_COLS =
-  "id,title,description,start_date,end_date,start_minute,end_minute,slot_minutes,timezone,expires_at,closed,final_start,final_end,created_at";
+  "id,title,description,start_date,end_date,start_minute,end_minute,slot_minutes,timezone,expires_at,closed,final_start,final_end,created_at,dates";
 
 function publicClient() {
   const url = process.env["SUPABASE_URL"]!;
@@ -78,6 +79,7 @@ const createSchema = z
     description: z.string().trim().max(500).optional(),
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(31).optional(),
     start_minute: z.number().int().min(0).max(1440),
     end_minute: z.number().int().min(0).max(1440),
     slot_minutes: z.union([z.literal(15), z.literal(30), z.literal(45), z.literal(60)]),
@@ -86,8 +88,8 @@ const createSchema = z
   .refine((v) => v.end_minute > v.start_minute, "End time must be after start time")
   .refine((v) => v.end_date >= v.start_date, "End date must be after start date")
   .refine(
-    (v) => (Date.parse(v.end_date) - Date.parse(v.start_date)) / 86400000 <= 30,
-    "Pick a range of 31 days or less",
+    (v) => (Date.parse(v.end_date) - Date.parse(v.start_date)) / 86400000 <= 92,
+    "Pick dates within about 3 months",
   );
 
 export const createEvent = createServerFn({ method: "POST" })
@@ -99,6 +101,7 @@ export const createEvent = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("events").insert({
       ...data,
       description: data.description || null,
+      dates: data.dates ?? null,
       id,
       admin_token,
       expires_at: new Date(Date.now() + 21 * 86400000).toISOString(),
