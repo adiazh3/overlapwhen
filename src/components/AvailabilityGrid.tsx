@@ -91,7 +91,7 @@ export function AvailabilityGrid({
   return (
     <div className="overflow-x-auto pb-2">
       <div
-        className={cn("grid-surface inline-grid gap-x-1", mode === "paint" ? "cursor-crosshair" : "cursor-pointer")}
+        className={cn("grid-surface grid w-full min-w-max gap-x-1", mode === "paint" ? "cursor-crosshair" : "cursor-pointer")}
         style={{ gridTemplateColumns: `3.75rem repeat(${grid.length}, minmax(2.75rem, 1fr))` }}
         onPointerDown={onDown}
         onPointerMove={onMove}
