@@ -14,7 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          admin_token: string
+          closed: boolean
+          created_at: string
+          description: string | null
+          end_date: string
+          end_minute: number
+          expires_at: string
+          final_end: string | null
+          final_start: string | null
+          id: string
+          slot_minutes: number
+          start_date: string
+          start_minute: number
+          timezone: string
+          title: string
+        }
+        Insert: {
+          admin_token: string
+          closed?: boolean
+          created_at?: string
+          description?: string | null
+          end_date: string
+          end_minute: number
+          expires_at?: string
+          final_end?: string | null
+          final_start?: string | null
+          id: string
+          slot_minutes?: number
+          start_date: string
+          start_minute: number
+          timezone: string
+          title: string
+        }
+        Update: {
+          admin_token?: string
+          closed?: boolean
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          end_minute?: number
+          expires_at?: string
+          final_end?: string | null
+          final_start?: string | null
+          id?: string
+          slot_minutes?: number
+          start_date?: string
+          start_minute?: number
+          timezone?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      responses: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          name: string
+          pin_hash: string | null
+          slots: number[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          name: string
+          pin_hash?: string | null
+          slots?: number[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          name?: string
+          pin_hash?: string | null
+          slots?: number[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responses_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
