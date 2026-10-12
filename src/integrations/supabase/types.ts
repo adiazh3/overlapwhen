@@ -19,6 +19,7 @@ export type Database = {
           admin_token: string
           closed: boolean
           created_at: string
+          dates: string[] | null
           description: string | null
           end_date: string
           end_minute: number
@@ -36,6 +37,7 @@ export type Database = {
           admin_token: string
           closed?: boolean
           created_at?: string
+          dates?: string[] | null
           description?: string | null
           end_date: string
           end_minute: number
@@ -53,6 +55,7 @@ export type Database = {
           admin_token?: string
           closed?: boolean
           created_at?: string
+          dates?: string[] | null
           description?: string | null
           end_date?: string
           end_minute?: number
