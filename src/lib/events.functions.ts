@@ -18,11 +18,12 @@ export type EventRow = {
   final_start: string | null;
   final_end: string | null;
   created_at: string;
+  dates: string[] | null;
 };
 export type ResponseRow = { id: string; name: string; slots: number[]; updated_at: string };
 
 const EVENT_COLS =
-  "id,title,description,start_date,end_date,start_minute,end_minute,slot_minutes,timezone,expires_at,closed,final_start,final_end,created_at";
+  "id,title,description,start_date,end_date,start_minute,end_minute,slot_minutes,timezone,expires_at,closed,final_start,final_end,created_at,dates";
 
 function publicClient() {
   const url = process.env["SUPABASE_URL"]!;
@@ -78,6 +79,7 @@ const createSchema = z
     description: z.string().trim().max(500).optional(),
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(31).optional(),
     start_minute: z.number().int().min(0).max(1440),
     end_minute: z.number().int().min(0).max(1440),
     slot_minutes: z.union([z.literal(15), z.literal(30), z.literal(45), z.literal(60)]),

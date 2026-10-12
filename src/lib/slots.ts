@@ -9,6 +9,7 @@ export type EventShape = {
   end_minute: number;
   slot_minutes: number;
   timezone: string;
+  dates?: string[] | null | undefined;
 };
 
 export function tzOffsetMinutes(utcMs: number, tz: string): number {
@@ -54,7 +55,7 @@ export function listDates(start: string, end: string, max = 31): string[] {
 
 /** grid[dayIndex][rowIndex] = epoch minute */
 export function buildGrid(ev: EventShape): { dates: string[]; rows: number; grid: number[][] } {
-  const dates = listDates(ev.start_date, ev.end_date);
+  const dates = ev.dates && ev.dates.length ? [...ev.dates].sort() : listDates(ev.start_date, ev.end_date);
   const rows = Math.max(0, Math.floor((ev.end_minute - ev.start_minute) / ev.slot_minutes));
   const grid = dates.map((d) =>
     Array.from({ length: rows }, (_, r) =>
