@@ -88,8 +88,8 @@ const createSchema = z
   .refine((v) => v.end_minute > v.start_minute, "End time must be after start time")
   .refine((v) => v.end_date >= v.start_date, "End date must be after start date")
   .refine(
-    (v) => (Date.parse(v.end_date) - Date.parse(v.start_date)) / 86400000 <= 30,
-    "Pick a range of 31 days or less",
+    (v) => (Date.parse(v.end_date) - Date.parse(v.start_date)) / 86400000 <= 92,
+    "Pick dates within about 3 months",
   );
 
 export const createEvent = createServerFn({ method: "POST" })
