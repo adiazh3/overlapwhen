@@ -197,7 +197,7 @@ export const adminUpdate = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin, ev } = await loadOpenEvent(data.event_id);
     if (ev.admin_token !== data.token) throw new Error("Only the organizer can do that");
-    let patch: Record<string, unknown>;
+    let patch: { closed: boolean; final_start?: string | null; final_end?: string | null };
     if (data.action === "lock") {
       if (data.start == null || data.end == null || data.end <= data.start) throw new Error("Pick a time");
       patch = {

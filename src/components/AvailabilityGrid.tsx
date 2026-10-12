@@ -99,7 +99,7 @@ export function AvailabilityGrid({
       >
         <div />
         {grid.map((col, d) => {
-          const [wd, ...rest] = fmtDay(col[0], tz).split(", ");
+          const [wd, ...rest] = fmtDay(col[0] ?? 0, tz).split(", ");
           return (
             <div key={d} className="pb-2 text-center leading-tight">
               <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{wd}</div>
@@ -110,10 +110,10 @@ export function AvailabilityGrid({
         {Array.from({ length: rows }, (_, r) => (
           <Row key={r}>
             <div className="-mt-2 pr-2 text-right text-[10px] text-muted-foreground tabular-nums">
-              {r % hourStep === 0 ? fmtTime(grid[0][r], tz) : ""}
+              {r % hourStep === 0 ? fmtTime(grid[0]?.[r] ?? 0, tz) : ""}
             </div>
             {grid.map((col, d) => {
-              const slot = col[r];
+              const slot = col[r] ?? 0;
               const isHour = (r + 1) % hourStep === 0;
               const on = mode === "paint" ? selected?.has(slot) : false;
               const level = mode === "heat" && total > 0 ? (counts?.get(slot) ?? 0) / total : 0;
@@ -123,7 +123,7 @@ export function AvailabilityGrid({
                   data-slot={slot}
                   className={cn(
                     "h-5 border-x border-t border-background transition-colors",
-                    isHour && "border-b-border",
+                    isHour && "border-b border-b-border",
                     mode === "paint" ? (on ? "paint-on" : "bg-heat-0 hover:bg-accent") : "heat-cell",
                     highlight?.has(slot) && "outline-2 outline-offset-[-2px] outline-success",
                     active === slot && "outline-2 outline-offset-[-2px] outline-ring",
