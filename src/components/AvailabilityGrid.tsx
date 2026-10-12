@@ -9,13 +9,13 @@ type Props = {
   tz: string;
   mode: "paint" | "heat";
   selected?: Set<number> | undefined;
-  onPaint?: (next: Set<number>) => void | undefined;
-  onPaintEnd?: () => void | undefined;
+  onPaint?: ((next: Set<number>) => void) | undefined;
+  onPaintEnd?: (() => unknown) | undefined;
   counts?: Map<number, number> | undefined;
   total?: number | undefined;
   active?: number | null | undefined;
   highlight?: Set<number> | undefined;
-  onActive?: (slot: number | null) => void | undefined;
+  onActive?: ((slot: number | null) => void) | undefined;
 };
 
 export function AvailabilityGrid({
@@ -52,7 +52,7 @@ export function AvailabilityGrid({
 
   const slotAt = (x: number, y: number) => {
     const el = document.elementFromPoint(x, y) as HTMLElement | null;
-    const v = el?.closest<HTMLElement>("[data-slot]")?.dataset.slot;
+    const v = el?.closest<HTMLElement>("[data-slot]")?.dataset["slot"];
     return v ? Number(v) : null;
   };
 
