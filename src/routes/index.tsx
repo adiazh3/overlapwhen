@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { createEvent } from "@/lib/events.functions";
 
@@ -39,8 +40,8 @@ function Index() {
   const create = useServerFn(createEvent);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [days, setDays] = useState<Date[]>([]);
+  const [today, setToday] = useState<Date | null>(null);
   const [startHour, setStartHour] = useState(9);
   const [endHour, setEndHour] = useState(21);
   const [slot, setSlot] = useState<15 | 30 | 45 | 60>(30);
@@ -49,25 +50,27 @@ function Index() {
 
   useEffect(() => {
     const now = new Date();
-    const end = new Date();
-    end.setDate(end.getDate() + 6);
-    setStartDate(isoDate(now));
-    setEndDate(isoDate(end));
+    now.setHours(0, 0, 0, 0);
+    setToday(now);
+    setDays(Array.from({ length: 5 }, (_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)));
     setTz(Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
   }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) { toast.error("Give your event a name"); return; }
+    if (days.length === 0) { toast.error("Pick at least one day"); return; }
     if (endHour <= startHour) { toast.error("End time must be after start time"); return; }
+    const dates = [...new Set(days.map(isoDate))].sort();
     setBusy(true);
     try {
       const res = await create({
         data: {
           title,
           description,
-          start_date: startDate,
-          end_date: endDate,
+          start_date: dates[0]!,
+          end_date: dates[dates.length - 1]!,
+          dates,
           start_minute: startHour * 60,
           end_minute: endHour * 60,
           slot_minutes: slot,
@@ -131,14 +134,23 @@ function Index() {
             </Label>
             <Textarea id="desc" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="sd">From</Label>
-              <Input id="sd" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between">
+              <Label>Which days?</Label>
+              <span className="text-xs text-muted-foreground">
+                {days.length} selected{days.length > 0 && (
+                  <button type="button" className="ml-2 underline" onClick={() => setDays([])}>clear</button>
+                )}
+              </span>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="ed">To</Label>
-              <Input id="ed" type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
+            <p className="text-xs text-muted-foreground">Tap any days you want — they don't need to be in a row.</p>
+            <div className="flex justify-center rounded-lg border">
+              <Calendar
+                mode="multiple"
+                selected={days}
+                onSelect={(d) => setDays((d ?? []).slice(0, 31))}
+                disabled={{ before: today ?? new Date(0) }}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
