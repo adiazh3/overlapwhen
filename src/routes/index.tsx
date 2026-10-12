@@ -58,8 +58,8 @@ function Index() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) return toast.error("Give your event a name");
-    if (endHour <= startHour) return toast.error("End time must be after start time");
+    if (!title.trim()) { toast.error("Give your event a name"); return; }
+    if (endHour <= startHour) { toast.error("End time must be after start time"); return; }
     setBusy(true);
     try {
       const res = await create({

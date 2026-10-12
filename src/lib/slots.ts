@@ -28,7 +28,7 @@ export function tzOffsetMinutes(utcMs: number, tz: string): number {
 
 /** Wall-clock date + minute-of-day in tz -> UTC epoch minutes */
 export function zonedToEpochMinutes(date: string, minuteOfDay: number, tz: string): number {
-  const [y, m, d] = date.split("-").map(Number);
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
   const guess = Date.UTC(y, m - 1, d, 0, minuteOfDay);
   let off = tzOffsetMinutes(guess, tz);
   let utc = guess - off * 60000;
@@ -42,7 +42,7 @@ export function zonedToEpochMinutes(date: string, minuteOfDay: number, tz: strin
 
 export function listDates(start: string, end: string, max = 31): string[] {
   const out: string[] = [];
-  const [y, m, d] = start.split("-").map(Number);
+  const [y = 0, m = 1, d = 1] = start.split("-").map(Number);
   const cur = new Date(Date.UTC(y, m - 1, d));
   const endMs = Date.parse(end + "T00:00:00Z");
   while (cur.getTime() <= endMs && out.length < max) {

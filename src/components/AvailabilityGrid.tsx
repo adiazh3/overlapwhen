@@ -8,14 +8,14 @@ type Props = {
   slotMinutes: number;
   tz: string;
   mode: "paint" | "heat";
-  selected?: Set<number>;
-  onPaint?: (next: Set<number>) => void;
-  onPaintEnd?: () => void;
-  counts?: Map<number, number>;
-  total?: number;
-  active?: number | null;
-  highlight?: Set<number>;
-  onActive?: (slot: number | null) => void;
+  selected?: Set<number> | undefined;
+  onPaint?: (next: Set<number>) => void | undefined;
+  onPaintEnd?: () => void | undefined;
+  counts?: Map<number, number> | undefined;
+  total?: number | undefined;
+  active?: number | null | undefined;
+  highlight?: Set<number> | undefined;
+  onActive?: (slot: number | null) => void | undefined;
 };
 
 export function AvailabilityGrid({

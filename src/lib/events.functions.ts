@@ -116,7 +116,7 @@ async function loadOpenEvent(id: string) {
 }
 
 export const saveResponse = createServerFn({ method: "POST" })
-  .inputValidator((input: { event_id: string; name: string; pin?: string; slots: number[] }) =>
+  .inputValidator((input: { event_id: string; name: string; pin?: string | undefined; slots: number[] }) =>
     z
       .object({
         event_id: z.string().min(1).max(40),
@@ -163,7 +163,7 @@ export const saveResponse = createServerFn({ method: "POST" })
   });
 
 export const checkName = createServerFn({ method: "POST" })
-  .inputValidator((input: { event_id: string; name: string; pin?: string }) =>
+  .inputValidator((input: { event_id: string; name: string; pin?: string | undefined }) =>
     z
       .object({ event_id: z.string().max(40), name: z.string().trim().min(1).max(40), pin: z.string().max(4).optional() })
       .parse(input),
@@ -183,7 +183,7 @@ export const checkName = createServerFn({ method: "POST" })
 
 export const adminUpdate = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { event_id: string; token: string; action: "lock" | "close" | "reopen"; start?: number; end?: number }) =>
+    (input: { event_id: string; token: string; action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined }) =>
       z
         .object({
           event_id: z.string().max(40),

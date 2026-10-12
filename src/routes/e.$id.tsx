@@ -384,7 +384,7 @@ function NameForm({ onSubmit }: { onSubmit: (m: Me) => Promise<void> }) {
       onSubmit={async (e) => {
         e.preventDefault();
         if (!name.trim()) return;
-        if (pin && !/^\d{4}$/.test(pin)) return toast.error("PIN must be 4 digits");
+        if (pin && !/^\d{4}$/.test(pin)) { toast.error("PIN must be 4 digits"); return; }
         setBusy(true);
         try {
           await onSubmit({ name: name.trim(), pin });
