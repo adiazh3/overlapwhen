@@ -259,26 +259,27 @@ function EventPage() {
         </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-        <section className="rounded-2xl border bg-card p-4 shadow-soft md:p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
-              {(["mine", "group"] as const).map((t) => (
-                <button key={t} onClick={() => setTab(t)} className={cn("rounded-md px-3 py-1.5 font-medium transition", tab === t ? "bg-card shadow-soft" : "text-muted-foreground")}>
-                  {t === "mine" ? "My availability" : "Group heatmap"}
-                </button>
-              ))}
-            </div>
-            {tab === "mine" && me && (
+      <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm lg:hidden">
+        {(["mine", "group"] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={cn("rounded-md px-3 py-1.5 font-medium transition", tab === t ? "bg-card shadow-soft" : "text-muted-foreground")}>
+            {t === "mine" ? "My availability" : "Group's availability"}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className={cn("rounded-2xl border bg-card p-4 shadow-soft md:p-5", tab !== "mine" && "hidden lg:block")}>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold">{me ? `${me.name}'s availability` : "Your availability"}</h2>
+            {me && !ev.closed && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
-                {saving ? "Saving" : "Saved"} as <strong className="text-foreground">{me.name}</strong>
-                <button className="underline" onClick={() => { setMe(null); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>change</button>
+                {saving ? "Saving" : "Saved"}
+                <button className="underline" onClick={() => { setMe(null); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>not you?</button>
               </span>
             )}
           </div>
-
-          {tab === "mine" && !me && !ev.closed && (
+          {!me && !ev.closed && (
             <NameForm
               onSubmit={async (m) => {
                 const res = await check({ data: { event_id: id, name: m.name, pin: m.pin || undefined } });
@@ -288,46 +289,53 @@ function EventPage() {
               }}
             />
           )}
-          {tab === "mine" && ev.closed && <p className="py-8 text-center text-sm text-muted-foreground">Responses are closed. See the group heatmap.</p>}
-          {tab === "mine" && me && !ev.closed && (
+          {ev.closed && <p className="py-8 text-center text-sm text-muted-foreground">Responses are closed. See the group's availability.</p>}
+          {me && !ev.closed && (
             <>
-              <p className="mb-3 text-xs text-muted-foreground">Click and drag (or touch and drag) to paint when you're free.</p>
-              <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="paint" selected={mine} onPaint={setMine} onPaintEnd={onPaintEnd} />
-            </>
-          )}
-          {tab === "group" && (
-            <>
-              <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <span>0</span>
-                {Array.from({ length: Math.max(responses.length, 1) + 1 }, (_, i) => (
-                  <div key={i} className="heat-cell h-3 w-5 rounded-sm" style={{ ["--level" as string]: responses.length ? i / responses.length : 0 }} />
-                ))}
-                <span>{responses.length} free</span>
+              <div className="mb-3 flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="bg-heat-0 size-3 rounded-sm border" /> Unavailable</span>
+                <span className="flex items-center gap-1.5"><span className="paint-on size-3 rounded-sm" /> Available</span>
+                <span>· Click or drag to toggle</span>
               </div>
-              <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="heat" counts={counts} total={responses.length} active={active} onActive={setActive} highlight={finalStart != null ? new Set(shape.grid.flat().filter((s) => s >= finalStart && s < (finalEnd ?? 0))) : undefined} />
+              <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="paint" selected={mine} onPaint={setMine} onPaintEnd={onPaintEnd} />
             </>
           )}
         </section>
 
-        <aside className="space-y-4">
-          {tab === "group" && (
-            <div className="rounded-2xl border bg-card p-4 shadow-soft">
-              {active == null ? (
-                <p className="text-sm text-muted-foreground">Hover or tap a slot to see who's free.</p>
-              ) : (
-                <>
-                  <div className="mb-3 text-sm font-semibold">{fmtRange(active, active + ev.slot_minutes, tz)}</div>
+        <section className={cn("rounded-2xl border bg-card p-4 shadow-soft md:p-5", tab !== "group" && "hidden lg:block")}>
+          <h2 className="mb-3 text-base font-semibold">Group's availability</h2>
+          <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <span>0/{responses.length} available</span>
+            {Array.from({ length: Math.max(responses.length, 1) + 1 }, (_, i) => (
+              <div key={i} className="heat-cell h-3 w-5 rounded-sm" style={{ ["--level" as string]: responses.length ? i / responses.length : 0 }} />
+            ))}
+            <span>{responses.length}/{responses.length} available</span>
+          </div>
+          <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="heat" counts={counts} total={responses.length} active={active} onActive={setActive} highlight={finalStart != null ? new Set(shape.grid.flat().filter((s) => s >= finalStart && s < (finalEnd ?? 0))) : undefined} />
+          <div className="mt-4 rounded-xl bg-muted p-3">
+            {active == null ? (
+              <p className="text-sm text-muted-foreground">Hover or tap a slot to see who's available.</p>
+            ) : (
+              <>
+                <div className="mb-2 text-sm font-semibold">{fmtRange(active, active + ev.slot_minutes, tz)}</div>
+                <div className="grid grid-cols-2 gap-2">
                   <PeopleList label="Available" names={activeNames} ok />
                   <PeopleList label="Missing" names={activeMissing} />
-                  {isAdmin && !ev.closed && (
-                    <Button size="sm" variant="outline" className="mt-3 w-full" onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
-                      <CalendarCheck /> Lock in this slot
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+                </div>
+                {isAdmin && !ev.closed && (
+                  <Button size="sm" variant="outline" className="mt-2" onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
+                    <CalendarCheck /> Lock in this slot
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <aside className="contents">
+
           <Reminder id={id} title={ev.title} shareUrl={shareUrl} responded={responses.map((r) => r.name)} />
           <div className="rounded-2xl border bg-card p-4 shadow-soft">
             <h3 className="mb-2 text-sm font-semibold">Responded ({responses.length})</h3>
