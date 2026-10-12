@@ -80,7 +80,7 @@ const createSchema = z
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     start_minute: z.number().int().min(0).max(1440),
     end_minute: z.number().int().min(0).max(1440),
-    slot_minutes: z.union([z.literal(15), z.literal(30)]),
+    slot_minutes: z.union([z.literal(15), z.literal(30), z.literal(45), z.literal(60)]),
     timezone: z.string().min(1).max(64),
   })
   .refine((v) => v.end_minute > v.start_minute, "End time must be after start time")

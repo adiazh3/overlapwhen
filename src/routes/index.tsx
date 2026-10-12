@@ -43,7 +43,7 @@ function Index() {
   const [endDate, setEndDate] = useState("");
   const [startHour, setStartHour] = useState(9);
   const [endHour, setEndHour] = useState(21);
-  const [slot, setSlot] = useState<15 | 30>(30);
+  const [slot, setSlot] = useState<15 | 30 | 45 | 60>(30);
   const [tz, setTz] = useState("UTC");
   const [busy, setBusy] = useState(false);
 
@@ -161,8 +161,8 @@ function Index() {
           </div>
           <div className="space-y-2">
             <Label>Slot size</Label>
-            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-              {([15, 30] as const).map((s) => (
+            <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
+              {([15, 30, 45, 60] as const).map((s) => (
                 <button
                   type="button"
                   key={s}

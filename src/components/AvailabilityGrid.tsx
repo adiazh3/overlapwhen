@@ -86,7 +86,8 @@ export function AvailabilityGrid({
     if (drag.current && slot != null) apply(slot);
   };
 
-  const hourStep = 60 / slotMinutes;
+  const labelEvery = slotMinutes >= 45 ? 1 : 60 / slotMinutes;
+  const cellH = slotMinutes >= 45 ? "h-9" : slotMinutes === 30 ? "h-6" : "h-5";
 
   return (
     <div className="overflow-x-auto pb-2">
@@ -110,11 +111,11 @@ export function AvailabilityGrid({
         {Array.from({ length: rows }, (_, r) => (
           <Row key={r}>
             <div className="-mt-2 pr-2 text-right text-[10px] text-muted-foreground tabular-nums">
-              {r % hourStep === 0 ? fmtTime(grid[0]?.[r] ?? 0, tz) : ""}
+              {r % labelEvery === 0 ? fmtTime(grid[0]?.[r] ?? 0, tz) : ""}
             </div>
             {grid.map((col, d) => {
               const slot = col[r] ?? 0;
-              const isHour = (r + 1) % hourStep === 0;
+              const isHour = (r + 1) % labelEvery === 0;
               const on = mode === "paint" ? selected?.has(slot) : false;
               const level = mode === "heat" && total > 0 ? (counts?.get(slot) ?? 0) / total : 0;
               return (
@@ -122,7 +123,7 @@ export function AvailabilityGrid({
                   key={d}
                   data-slot={slot}
                   className={cn(
-                    "h-5 border-x border-t border-background transition-colors",
+                    cellH, "border-x border-t border-background transition-colors",
                     isHour && "border-b border-b-border",
                     mode === "paint" ? (on ? "paint-on" : "bg-heat-0 hover:bg-accent") : "heat-cell",
                     highlight?.has(slot) && "outline-2 outline-offset-[-2px] outline-success",
