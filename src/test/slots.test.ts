@@ -1,0 +1,30 @@
+import { describe, expect, it } from "vitest";
+import { buildGrid, expiryFrom, isExpired, topTimes, zonedToEpochMinutes } from "@/lib/slots";
+
+describe("scheduling rules", () => {
+  it("poll links expire 21 days after creation", () => {
+    const created = Date.UTC(2026, 0, 1);
+    expect(expiryFrom(created).toISOString()).toBe("2026-01-22T00:00:00.000Z");
+    expect(isExpired("2026-01-22T00:00:00.000Z", Date.UTC(2026, 0, 21))).toBe(false);
+    expect(isExpired("2026-01-22T00:00:00.000Z", Date.UTC(2026, 0, 22))).toBe(true);
+  });
+
+  it("builds 15-minute slots over the daily window", () => {
+    const g = buildGrid({ start_date: "2026-03-02", end_date: "2026-03-03", start_minute: 540, end_minute: 1260, slot_minutes: 15, timezone: "UTC" });
+    expect(g.dates).toEqual(["2026-03-02", "2026-03-03"]);
+    expect(g.rows).toBe(48);
+  });
+
+  it("converts wall-clock time in a timezone to UTC", () => {
+    expect(zonedToEpochMinutes("2026-07-01", 540, "America/New_York")).toBe(Date.UTC(2026, 6, 1, 13) / 60000);
+  });
+
+  it("ranks the slot with the most overlap first", () => {
+    const grid = [[0, 30, 60]];
+    const recs = topTimes(grid, 30, [
+      { name: "A", slots: [0, 30] },
+      { name: "B", slots: [30] },
+    ]);
+    expect(recs[0]).toMatchObject({ start: 30, end: 60, count: 2 });
+  });
+});
