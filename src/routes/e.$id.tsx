@@ -1,0 +1,522 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
+import {
+  CalendarCheck,
+  CalendarClock,
+  Check,
+  Copy,
+  Download,
+  Globe,
+  Hourglass,
+  Lock,
+  Loader2,
+  MessageSquareText,
+  Trophy,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AvailabilityGrid } from "@/components/AvailabilityGrid";
+import { adminUpdate, checkName, getEventData, saveResponse, type ResponseRow } from "@/lib/events.functions";
+import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, topTimes } from "@/lib/slots";
+import { cn } from "@/lib/utils";
+
+const eventQuery = (id: string) =>
+  queryOptions({ queryKey: ["event", id], queryFn: () => getEventData({ data: { id } }) });
+
+export const Route = createFileRoute("/e/$id")({
+  validateSearch: z.object({ admin: z.string().optional() }),
+  loader: ({ context, params }) => context.queryClient.ensureQueryData(eventQuery(params.id)),
+  head: ({ loaderData }) => {
+    const t = loaderData?.event?.title;
+    const title = t ? `${t} — pick your times · Overlap` : "Poll unavailable · Overlap";
+    const desc = t ? `Mark when you're free for “${t}”. Takes 20 seconds, no sign-up.` : "This poll couldn't be found.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
+  },
+  component: EventPage,
+});
+
+type Me = { name: string; pin: string };
+
+function EventPage() {
+  const { id } = Route.useParams();
+  const search = Route.useSearch();
+  const qc = useQueryClient();
+  const { data } = useSuspenseQuery(eventQuery(id));
+  const ev = data.event;
+  const responses = data.responses;
+
+  const save = useServerFn(saveResponse);
+  const check = useServerFn(checkName);
+  const admin = useServerFn(adminUpdate);
+
+  const [viewerTz, setViewerTz] = useState<string | null>(null);
+  const [useLocal, setUseLocal] = useState(true);
+  const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
+  const [tab, setTab] = useState<"mine" | "group">("mine");
+  const [mine, setMine] = useState<Set<number>>(new Set());
+  const [saving, setSaving] = useState(false);
+  const [active, setActive] = useState<number | null>(null);
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    setNow(Date.now());
+    setViewerTz(Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
+    const key = `overlap:admin:${id}`;
+    if (search.admin) localStorage.setItem(key, search.admin);
+    setAdminToken(search.admin ?? localStorage.getItem(key));
+    const raw = localStorage.getItem(`overlap:me:${id}`);
+    if (raw) {
+      try {
+        setMe(JSON.parse(raw));
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [id, search.admin]);
+
+  // Realtime updates
+  useEffect(() => {
+    const ch = supabase
+      .channel(`event-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "responses", filter: `event_id=eq.${id}` }, () =>
+        qc.invalidateQueries({ queryKey: ["event", id] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `id=eq.${id}` }, () =>
+        qc.invalidateQueries({ queryKey: ["event", id] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [id, qc]);
+
+  // Load my existing slots once identity is known
+  const loadedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!me || loadedFor.current === me.name.toLowerCase()) return;
+    const existing = responses.find((r) => r.name.toLowerCase() === me.name.toLowerCase());
+    setMine(new Set(existing?.slots ?? []));
+    loadedFor.current = me.name.toLowerCase();
+  }, [me, responses]);
+
+  const shape = useMemo(() => (ev ? buildGrid(ev) : null), [ev]);
+  const tz = useLocal && viewerTz ? viewerTz : (ev?.timezone ?? "UTC");
+
+  const counts = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const r of responses) for (const s of r.slots) m.set(s, (m.get(s) ?? 0) + 1);
+    return m;
+  }, [responses]);
+
+  const recs = useMemo(
+    () => (shape && ev ? topTimes(shape.grid, ev.slot_minutes, responses, 3) : []),
+    [shape, ev, responses],
+  );
+
+  const persist = useCallback(
+    async (slots: Set<number>) => {
+      if (!me || !ev) return;
+      const arr = [...slots].sort((a, b) => a - b);
+      // optimistic
+      qc.setQueryData(eventQuery(id).queryKey, (old) => {
+        if (!old) return old;
+        const others = old.responses.filter((r) => r.name.toLowerCase() !== me.name.toLowerCase());
+        const mineRow: ResponseRow = {
+          id: old.responses.find((r) => r.name.toLowerCase() === me.name.toLowerCase())?.id ?? "local",
+          name: me.name,
+          slots: arr,
+          updated_at: new Date().toISOString(),
+        };
+        return { ...old, responses: [...others, mineRow] };
+      });
+      setSaving(true);
+      try {
+        await save({ data: { event_id: id, name: me.name, pin: me.pin || undefined, slots: arr } });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Couldn't save");
+        qc.invalidateQueries({ queryKey: ["event", id] });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [me, ev, id, qc, save],
+  );
+
+  const mineRef = useRef(mine);
+  mineRef.current = mine;
+  const onPaintEnd = useCallback(() => persist(mineRef.current), [persist]);
+
+  if (!ev || !shape) return <Gone title="We couldn't find that poll" body="The link may be mistyped or the poll was removed." />;
+  if (now != null && isExpired(ev.expires_at, now))
+    return <Gone title="This poll has expired" body="Polls close automatically 3 weeks after they're created to keep things tidy." />;
+
+  const isAdmin = !!adminToken;
+  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/e/${id}` : `/e/${id}`;
+  const finalStart = ev.final_start ? Math.round(Date.parse(ev.final_start) / 60000) : null;
+  const finalEnd = ev.final_end ? Math.round(Date.parse(ev.final_end) / 60000) : null;
+  const activeNames = active != null ? responses.filter((r) => r.slots.includes(active)).map((r) => r.name) : [];
+  const activeMissing = active != null ? responses.filter((r) => !r.slots.includes(active)).map((r) => r.name) : [];
+  const daysLeft = now ? Math.max(0, Math.ceil((Date.parse(ev.expires_at) - now) / 86400000)) : null;
+
+  async function doAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
+    if (!adminToken) return;
+    try {
+      await admin({ data: { event_id: id, token: adminToken, action, start, end } });
+      qc.invalidateQueries({ queryKey: ["event", id] });
+      toast.success(action === "lock" ? "Final time locked in" : action === "close" ? "Poll closed" : "Poll reopened");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
+    }
+  }
+
+  const copy = async (text: string, msg: string) => {
+    await navigator.clipboard.writeText(text);
+    toast.success(msg);
+  };
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
+      <header className="mb-6 flex items-center justify-between gap-3">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
+            <CalendarClock className="size-3.5" />
+          </div>
+          <span className="font-display font-semibold">Overlap</span>
+        </Link>
+        <Button variant="outline" size="sm" onClick={() => copy(shareUrl, "Link copied")}>
+          <Copy /> Copy share link
+        </Button>
+      </header>
+
+      <div className="mb-6">
+        <h1 className="text-3xl font-semibold md:text-4xl">{ev.title}</h1>
+        {ev.description && <p className="mt-2 max-w-2xl text-muted-foreground">{ev.description}</p>}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <span>{responses.length} responded</span>
+          {daysLeft != null && (
+            <span className="flex items-center gap-1">
+              <Hourglass className="size-3" /> Link expires in {daysLeft} day{daysLeft === 1 ? "" : "s"}
+            </span>
+          )}
+          {viewerTz && viewerTz !== ev.timezone && (
+            <button onClick={() => setUseLocal((v) => !v)} className="flex items-center gap-1 underline-offset-2 hover:underline">
+              <Globe className="size-3" /> Showing {tz} · switch to {useLocal ? ev.timezone : viewerTz}
+            </button>
+          )}
+          {viewerTz && viewerTz === ev.timezone && (
+            <span className="flex items-center gap-1">
+              <Globe className="size-3" /> {tz}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {finalStart != null && finalEnd != null && (
+        <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} isAdmin={isAdmin} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} />
+      )}
+      {ev.closed && finalStart == null && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border bg-muted p-4 text-sm">
+          <span className="flex items-center gap-2"><Lock className="size-4" /> The organizer closed this poll.</span>
+          {isAdmin && <Button size="sm" variant="outline" onClick={() => doAdmin("reopen")}>Reopen</Button>}
+        </div>
+      )}
+
+      {recs.length > 0 && (
+        <section className="mb-6 rounded-2xl border bg-card p-4 shadow-soft md:p-5">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Trophy className="size-4" /> Top recommended times</h2>
+          <div className="grid gap-2 md:grid-cols-3">
+            {recs.map((r, i) => (
+              <div key={i} className={cn("rounded-xl border p-3", i === 0 && "border-primary bg-primary text-primary-foreground")}>
+                <div className="text-sm font-semibold">{fmtRange(r.start, r.end, tz)}</div>
+                <div className={cn("mt-1 text-xs", i === 0 ? "opacity-80" : "text-muted-foreground")}>
+                  {r.count}/{responses.length} free · {r.names.join(", ")}
+                </div>
+                {isAdmin && !ev.closed && (
+                  <Button size="sm" variant={i === 0 ? "secondary" : "outline"} className="mt-3 h-7 text-xs" onClick={() => doAdmin("lock", r.start, r.end)}>
+                    <CalendarCheck /> Lock in
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
+        <section className="rounded-2xl border bg-card p-4 shadow-soft md:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
+              {(["mine", "group"] as const).map((t) => (
+                <button key={t} onClick={() => setTab(t)} className={cn("rounded-md px-3 py-1.5 font-medium transition", tab === t ? "bg-card shadow-soft" : "text-muted-foreground")}>
+                  {t === "mine" ? "My availability" : "Group heatmap"}
+                </button>
+              ))}
+            </div>
+            {tab === "mine" && me && (
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
+                {saving ? "Saving" : "Saved"} as <strong className="text-foreground">{me.name}</strong>
+                <button className="underline" onClick={() => { setMe(null); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>change</button>
+              </span>
+            )}
+          </div>
+
+          {tab === "mine" && !me && !ev.closed && (
+            <NameForm
+              onSubmit={async (m) => {
+                const res = await check({ data: { event_id: id, name: m.name, pin: m.pin || undefined } });
+                if (!res.ok) throw new Error(m.pin ? "Wrong PIN for that name" : "That name has a PIN — enter it to edit");
+                localStorage.setItem(`overlap:me:${id}`, JSON.stringify(m));
+                setMe(m);
+              }}
+            />
+          )}
+          {tab === "mine" && ev.closed && <p className="py-8 text-center text-sm text-muted-foreground">Responses are closed. See the group heatmap.</p>}
+          {tab === "mine" && me && !ev.closed && (
+            <>
+              <p className="mb-3 text-xs text-muted-foreground">Click and drag (or touch and drag) to paint when you're free.</p>
+              <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="paint" selected={mine} onPaint={setMine} onPaintEnd={onPaintEnd} />
+            </>
+          )}
+          {tab === "group" && (
+            <>
+              <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <span>0</span>
+                {Array.from({ length: Math.max(responses.length, 1) + 1 }, (_, i) => (
+                  <div key={i} className="heat-cell h-3 w-5 rounded-sm" style={{ ["--level" as string]: responses.length ? i / responses.length : 0 }} />
+                ))}
+                <span>{responses.length} free</span>
+              </div>
+              <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="heat" counts={counts} total={responses.length} active={active} onActive={setActive} highlight={finalStart != null ? new Set(shape.grid.flat().filter((s) => s >= finalStart && s < (finalEnd ?? 0))) : undefined} />
+            </>
+          )}
+        </section>
+
+        <aside className="space-y-4">
+          {tab === "group" && (
+            <div className="rounded-2xl border bg-card p-4 shadow-soft">
+              {active == null ? (
+                <p className="text-sm text-muted-foreground">Hover or tap a slot to see who's free.</p>
+              ) : (
+                <>
+                  <div className="mb-3 text-sm font-semibold">{fmtRange(active, active + ev.slot_minutes, tz)}</div>
+                  <PeopleList label="Available" names={activeNames} ok />
+                  <PeopleList label="Missing" names={activeMissing} />
+                  {isAdmin && !ev.closed && (
+                    <Button size="sm" variant="outline" className="mt-3 w-full" onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
+                      <CalendarCheck /> Lock in this slot
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+          <Reminder id={id} title={ev.title} shareUrl={shareUrl} responded={responses.map((r) => r.name)} />
+          <div className="rounded-2xl border bg-card p-4 shadow-soft">
+            <h3 className="mb-2 text-sm font-semibold">Responded ({responses.length})</h3>
+            {responses.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No one yet. Share the link!</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {responses.map((r) => (
+                  <span key={r.id} className="rounded-full bg-muted px-2.5 py-1 text-xs">{r.name}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          {isAdmin && !ev.closed && (
+            <div className="rounded-2xl border border-dashed p-4 text-xs text-muted-foreground">
+              <p className="mb-2"><strong className="text-foreground">You're the organizer.</strong> Lock in a time from the recommendations or the heatmap.</p>
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => doAdmin("close")}>
+                <Lock /> Close poll early
+              </Button>
+            </div>
+          )}
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+function PeopleList({ label, names, ok }: { label: string; names: string[]; ok?: boolean }) {
+  return (
+    <div className="mb-2">
+      <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">{label} ({names.length})</div>
+      {names.length === 0 ? (
+        <div className="text-xs text-muted-foreground">—</div>
+      ) : (
+        <ul className="space-y-1 text-sm">
+          {names.map((n) => (
+            <li key={n} className="flex items-center gap-2">
+              {ok ? <Check className="size-3.5 text-success" /> : <X className="size-3.5 text-muted-foreground" />} {n}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function NameForm({ onSubmit }: { onSubmit: (m: Me) => Promise<void> }) {
+  const [name, setName] = useState("");
+  const [pin, setPin] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <form
+      className="mx-auto max-w-sm space-y-4 py-6"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        if (pin && !/^\d{4}$/.test(pin)) return toast.error("PIN must be 4 digits");
+        setBusy(true);
+        try {
+          await onSubmit({ name: name.trim(), pin });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Try again");
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <div className="space-y-2">
+        <Label htmlFor="name">Your name</Label>
+        <Input id="name" autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="Alex" />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="pin">4-digit PIN <span className="font-normal text-muted-foreground">(optional, to edit later)</span></Label>
+        <Input id="pin" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="••••" />
+      </div>
+      <Button type="submit" className="w-full" disabled={busy}>
+        {busy && <Loader2 className="animate-spin" />} Continue
+      </Button>
+    </form>
+  );
+}
+
+function Reminder({ id, title, shareUrl, responded }: { id: string; title: string; shareUrl: string; responded: string[] }) {
+  const [names, setNames] = useState<string[]>([]);
+  const [draft, setDraft] = useState("");
+  useEffect(() => {
+    const raw = localStorage.getItem(`overlap:invitees:${id}`);
+    if (raw) setNames(JSON.parse(raw));
+  }, [id]);
+  const update = (n: string[]) => {
+    setNames(n);
+    localStorage.setItem(`overlap:invitees:${id}`, JSON.stringify(n));
+  };
+  const done = new Set(responded.map((n) => n.toLowerCase()));
+  const missing = names.filter((n) => !done.has(n.toLowerCase()));
+  const text = `Hey ${missing.length ? missing.join(", ") : "all"}! 👋 Still need your availability for “${title}”. Takes 20 seconds: ${shareUrl}`;
+  return (
+    <div className="rounded-2xl border bg-card p-4 shadow-soft">
+      <h3 className="mb-2 text-sm font-semibold">Who haven't we heard from?</h3>
+      <ul className="mb-2 space-y-1 text-sm">
+        {names.map((n) => (
+          <li key={n} className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <span className={cn("grid size-4 place-items-center rounded border", done.has(n.toLowerCase()) && "border-primary bg-primary text-primary-foreground")}>
+                {done.has(n.toLowerCase()) && <Check className="size-3" />}
+              </span>
+              <span className={cn(done.has(n.toLowerCase()) && "text-muted-foreground line-through")}>{n}</span>
+            </span>
+            <button onClick={() => update(names.filter((x) => x !== n))} className="text-muted-foreground hover:text-foreground" aria-label={`Remove ${n}`}>
+              <X className="size-3.5" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const v = draft.trim();
+          if (v && !names.includes(v)) update([...names, v]);
+          setDraft("");
+        }}
+      >
+        <Input className="h-8 text-sm" placeholder="Add a name" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <Button size="sm" variant="outline" className="h-8" type="submit">Add</Button>
+      </form>
+      <Button
+        size="sm"
+        className="mt-3 w-full"
+        disabled={names.length > 0 && missing.length === 0}
+        onClick={async () => {
+          await navigator.clipboard.writeText(text);
+          toast.success("Reminder copied — paste it in your group chat");
+        }}
+      >
+        <MessageSquareText /> {names.length > 0 && missing.length === 0 ? "Everyone's in!" : "Copy reminder"}
+      </Button>
+    </div>
+  );
+}
+
+function FinalCard({ id, title, description, start, end, tz, isAdmin, onReopen, names }: { id: string; title: string; description: string; start: number; end: number; tz: string; isAdmin: boolean; onReopen: () => void; names: string[] }) {
+  const details = description || `Scheduled with Overlap`;
+  const downloadIcs = () => {
+    const blob = new Blob([buildIcs(id, title, details, start, end)], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/[^\w]+/g, "-").toLowerCase() || "event"}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  return (
+    <section className="mb-6 rounded-2xl bg-primary p-5 text-primary-foreground shadow-soft md:p-6">
+      <div className="text-xs uppercase tracking-widest opacity-70">It's happening</div>
+      <div className="mt-1 font-display text-2xl font-semibold">{fmtRange(start, end, tz)}</div>
+      {names.length > 0 && <div className="mt-1 text-sm opacity-80">With {names.join(", ")}</div>}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button asChild size="sm" variant="secondary">
+          <a href={googleCalendarUrl(title, details, start, end)} target="_blank" rel="noreferrer">
+            <CalendarCheck /> Add to Google Calendar
+          </a>
+        </Button>
+        <Button size="sm" variant="secondary" onClick={downloadIcs}>
+          <Download /> Outlook / Apple (.ics)
+        </Button>
+        {isAdmin && (
+          <Button size="sm" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" onClick={onReopen}>
+            Reopen poll
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Gone({ title, body }: { title: string; body: string }) {
+  return (
+    <main className="grid min-h-screen place-items-center px-6">
+      <div className="max-w-sm text-center">
+        <div className="mx-auto mb-5 grid size-12 place-items-center rounded-2xl bg-muted">
+          <Hourglass className="size-5 text-muted-foreground" />
+        </div>
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+        <Button asChild className="mt-6">
+          <Link to="/">Start a new poll</Link>
+        </Button>
+      </div>
+    </main>
+  );
+}
