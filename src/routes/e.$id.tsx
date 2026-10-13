@@ -228,16 +228,25 @@ function EventPage() {
               <Hourglass className="size-3" /> Link expires in {daysLeft} day{daysLeft === 1 ? "" : "s"}
             </span>
           )}
-          {viewerTz && viewerTz !== ev.timezone && (
-            <button onClick={() => setUseLocal((v) => !v)} className="flex items-center gap-1 underline-offset-2 hover:underline">
-              <Globe className="size-3" /> Showing {tz} · switch to {useLocal ? ev.timezone : viewerTz}
-            </button>
-          )}
-          {viewerTz && viewerTz === ev.timezone && (
-            <span className="flex items-center gap-1">
-              <Globe className="size-3" /> {tz}
-            </span>
-          )}
+          <span className="flex items-center gap-1.5">
+            <Globe className="size-3" />
+            <label htmlFor="tzpick" className="sr-only">Show times in timezone</label>
+            <select
+              id="tzpick"
+              value={tz}
+              onChange={(e) => {
+                setTzPick(e.target.value);
+                localStorage.setItem(`overlap:tz:${id}`, e.target.value);
+              }}
+              className="h-7 max-w-44 rounded-md border border-input bg-card px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {tzOptions.map((z) => (
+                <option key={z} value={z}>
+                  {z.replace(/_/g, " ")}{z === viewerTz ? " (you)" : z === ev.timezone ? " (organizer)" : ""}
+                </option>
+              ))}
+            </select>
+          </span>
         </div>
       </div>
 
