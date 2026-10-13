@@ -66,7 +66,7 @@ function EventPage() {
   const admin = useServerFn(adminUpdate);
 
   const [viewerTz, setViewerTz] = useState<string | null>(null);
-  const [useLocal, setUseLocal] = useState(true);
+  const [tzPick, setTzPick] = useState<string | null>(null);
   const [adminToken, setAdminToken] = useState<string | null>(null);
   const [me, setMe] = useState<Me | null>(null);
   const [tab, setTab] = useState<"mine" | "group">("mine");
@@ -77,7 +77,9 @@ function EventPage() {
 
   useEffect(() => {
     setNow(Date.now());
-    setViewerTz(Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
+    const local = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    setViewerTz(local);
+    setTzPick(localStorage.getItem(`overlap:tz:${id}`) ?? local);
     const key = `overlap:admin:${id}`;
     if (search.admin) localStorage.setItem(key, search.admin);
     setAdminToken(search.admin ?? localStorage.getItem(key));
@@ -117,7 +119,18 @@ function EventPage() {
   }, [me, responses]);
 
   const shape = useMemo(() => (ev ? buildGrid(ev) : null), [ev]);
-  const tz = useLocal && viewerTz ? viewerTz : (ev?.timezone ?? "UTC");
+  const tz = tzPick ?? viewerTz ?? ev?.timezone ?? "UTC";
+  const tzOptions = useMemo(() => {
+    const base = [
+      "Pacific/Honolulu", "America/Anchorage", "America/Los_Angeles", "America/Denver", "America/Chicago",
+      "America/New_York", "America/Sao_Paulo", "Atlantic/Azores", "UTC", "Europe/London", "Europe/Paris",
+      "Europe/Berlin", "Europe/Helsinki", "Europe/Athens", "Africa/Cairo", "Asia/Dubai", "Asia/Karachi",
+      "Asia/Kolkata", "Asia/Bangkok", "Asia/Singapore", "Asia/Shanghai", "Asia/Tokyo", "Australia/Sydney",
+      "Pacific/Auckland",
+    ];
+    const extra = [viewerTz, ev?.timezone].filter((z): z is string => !!z);
+    return [...new Set([...extra, ...base])];
+  }, [viewerTz, ev?.timezone]);
 
   const counts = useMemo(() => {
     const m = new Map<number, number>();
@@ -215,16 +228,25 @@ function EventPage() {
               <Hourglass className="size-3" /> Link expires in {daysLeft} day{daysLeft === 1 ? "" : "s"}
             </span>
           )}
-          {viewerTz && viewerTz !== ev.timezone && (
-            <button onClick={() => setUseLocal((v) => !v)} className="flex items-center gap-1 underline-offset-2 hover:underline">
-              <Globe className="size-3" /> Showing {tz} · switch to {useLocal ? ev.timezone : viewerTz}
-            </button>
-          )}
-          {viewerTz && viewerTz === ev.timezone && (
-            <span className="flex items-center gap-1">
-              <Globe className="size-3" /> {tz}
-            </span>
-          )}
+          <span className="flex items-center gap-1.5">
+            <Globe className="size-3" />
+            <label htmlFor="tzpick" className="sr-only">Show times in timezone</label>
+            <select
+              id="tzpick"
+              value={tz}
+              onChange={(e) => {
+                setTzPick(e.target.value);
+                localStorage.setItem(`overlap:tz:${id}`, e.target.value);
+              }}
+              className="h-7 max-w-44 rounded-md border border-input bg-card px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {tzOptions.map((z) => (
+                <option key={z} value={z}>
+                  {z.replace(/_/g, " ")}{z === viewerTz ? " (you)" : z === ev.timezone ? " (organizer)" : ""}
+                </option>
+              ))}
+            </select>
+          </span>
         </div>
       </div>
 
