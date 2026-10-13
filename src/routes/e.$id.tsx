@@ -69,7 +69,6 @@ function EventPage() {
   const [tzPick, setTzPick] = useState<string | null>(null);
   const [adminToken, setAdminToken] = useState<string | null>(null);
   const [me, setMe] = useState<Me | null>(null);
-  const [tab, setTab] = useState<"mine" | "group">("mine");
   const [mine, setMine] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [active, setActive] = useState<number | null>(null);
@@ -260,73 +259,61 @@ function EventPage() {
         </div>
       )}
 
-      {recs.length > 0 && (
-        <section className="mb-6 rounded-2xl border bg-card p-4 shadow-soft md:p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Trophy className="size-4" /> Top recommended times</h2>
-          <div className="grid gap-2 md:grid-cols-3">
-            {recs.map((r, i) => (
-              <div key={i} className={cn("rounded-xl border p-3", i === 0 && "border-primary bg-primary text-primary-foreground")}>
-                <div className="text-sm font-semibold">{fmtRange(r.start, r.end, tz)}</div>
-                <div className={cn("mt-1 text-xs", i === 0 ? "opacity-80" : "text-muted-foreground")}>
-                  {r.count}/{responses.length} free · {r.names.join(", ")}
-                </div>
-                {isAdmin && !ev.closed && (
-                  <Button size="sm" variant={i === 0 ? "secondary" : "outline"} className="mt-3 h-7 text-xs" onClick={() => doAdmin("lock", r.start, r.end)}>
-                    <CalendarCheck /> Lock in
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm lg:hidden">
-        {(["mine", "group"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={cn("rounded-md px-3 py-1.5 font-medium transition", tab === t ? "bg-card shadow-soft" : "text-muted-foreground")}>
-            {t === "mine" ? "My availability" : "Group's availability"}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className={cn("rounded-2xl border bg-card p-4 shadow-soft md:p-5", tab !== "mine" && "hidden lg:block")}>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold">{me ? `${me.name}'s availability` : "Your availability"}</h2>
+      <div className="grid items-start gap-6 md:grid-cols-2">
+        <section className="min-w-0 border-t pt-5" aria-labelledby="your-availability">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 id="your-availability" className="text-base font-semibold">Your availability</h2>
             {me && !ev.closed && (
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
-                {saving ? "Saving" : "Saved"}
-                <button className="underline" onClick={() => { setMe(null); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>not you?</button>
+                {saving ? "Saving…" : "Saved"}
               </span>
             )}
           </div>
-          {!me && !ev.closed && (
-            <NameForm
-              onSubmit={async (m) => {
-                const res = await check({ data: { event_id: id, name: m.name, pin: m.pin || undefined } });
-                if (!res.ok) throw new Error(m.pin ? "Wrong PIN for that name" : "That name has a PIN — enter it to edit");
-                localStorage.setItem(`overlap:me:${id}`, JSON.stringify(m));
-                setMe(m);
-              }}
-            />
-          )}
-          {ev.closed && <p className="py-8 text-center text-sm text-muted-foreground">Responses are closed. See the group's availability.</p>}
-          {me && !ev.closed && (
+          {!ev.closed && (
             <>
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs text-primary-foreground">{me ? <Check className="size-3" /> : "1"}</span>
+                <h3>{me ? `You're joining as ${me.name}` : "Enter your name"}</h3>
+                {me && <Button variant="link" size="sm" className="ml-auto h-auto p-0 text-xs" onClick={() => { setMe(null); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>Change name</Button>}
+              </div>
+              {!me && (
+                <>
+                  <p className="text-sm text-muted-foreground">No account needed. Enter your name to join this poll, then choose when you're free.</p>
+                  <NameForm
+                    onSubmit={async (m) => {
+                      const res = await check({ data: { event_id: id, name: m.name, pin: m.pin || undefined } });
+                      if (!res.ok) throw new Error(m.pin ? "Wrong PIN for that name" : "That name has a PIN — enter it to edit");
+                      localStorage.setItem(`overlap:me:${id}`, JSON.stringify(m));
+                      setMe(m);
+                    }}
+                  />
+                </>
+              )}
+              <div className="mb-3 mt-5 flex items-center gap-2 text-sm font-semibold">
+                <span className={cn("grid size-6 shrink-0 place-items-center rounded-full text-xs", me ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>2</span>
+                <h3>Select your available times</h3>
+              </div>
+              <p className="mb-3 text-sm text-muted-foreground">{me ? `Click or drag across ${ev.slot_minutes}-minute blocks when you're free. Select separate blocks for breaks; changes save automatically.` : "Enter your name above to unlock time selection."}</p>
               <div className="mb-3 flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5"><span className="bg-heat-0 size-3 rounded-sm border" /> Unavailable</span>
                 <span className="flex items-center gap-1.5"><span className="paint-on size-3 rounded-sm" /> Available</span>
-                <span>· Click or drag to toggle</span>
               </div>
-              <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="paint" selected={mine} onPaint={setMine} onPaintEnd={onPaintEnd} />
+              <div inert={!me} className={cn(!me && "opacity-50")}>
+                <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="paint" selected={me ? mine : new Set<number>()} onPaint={me ? setMine : undefined} onPaintEnd={me ? onPaintEnd : undefined} />
+              </div>
             </>
           )}
+          {ev.closed && <p className="py-8 text-center text-sm text-muted-foreground">Responses are closed. See the group's availability.</p>}
         </section>
 
-        <section className={cn("rounded-2xl border bg-card p-4 shadow-soft md:p-5", tab !== "group" && "hidden lg:block")}>
-          <h2 className="mb-3 text-base font-semibold">Group's availability</h2>
-          <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <section className="min-w-0 border-t pt-5" aria-labelledby="group-availability">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="group-availability" className="text-base font-semibold">Group's availability</h2>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="size-1.5 rounded-full bg-success" /> Live updates</span>
+          </div>
+          <p className="mb-4 text-sm text-muted-foreground" role="status">{responses.length === 0 ? "Waiting for the first response. The group grid fills in as everyone selects their times." : `${responses.length} participant${responses.length === 1 ? " has" : "s have"} responded. Darker blocks mean more people are free.`}</p>
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>0/{responses.length} available</span>
             {Array.from({ length: Math.max(responses.length, 1) + 1 }, (_, i) => (
               <div key={i} className="heat-cell h-3 w-5 rounded-sm" style={{ ["--level" as string]: responses.length ? i / responses.length : 0 }} />
@@ -334,7 +321,7 @@ function EventPage() {
             <span>{responses.length}/{responses.length} available</span>
           </div>
           <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="heat" counts={counts} total={responses.length} active={active} onActive={setActive} highlight={finalStart != null ? new Set(shape.grid.flat().filter((s) => s >= finalStart && s < (finalEnd ?? 0))) : undefined} />
-          <div className="mt-4 rounded-xl bg-muted p-3">
+          <div className="mt-4 border-t pt-3">
             {active == null ? (
               <p className="text-sm text-muted-foreground">Hover or tap a slot to see who's available.</p>
             ) : (
@@ -354,6 +341,27 @@ function EventPage() {
           </div>
         </section>
       </div>
+
+      {recs.length > 0 && (
+        <section className="mt-6 border-t pt-5">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Trophy className="size-4" /> Top recommended times</h2>
+          <div className="grid gap-2 md:grid-cols-3">
+            {recs.map((r, i) => (
+              <div key={i} className={cn("rounded-xl border p-3", i === 0 && "border-primary bg-primary text-primary-foreground")}>
+                <div className="text-sm font-semibold">{fmtRange(r.start, r.end, tz)}</div>
+                <div className={cn("mt-1 text-xs", i === 0 ? "opacity-80" : "text-muted-foreground")}>
+                  {r.count}/{responses.length} free · {r.names.join(", ")}
+                </div>
+                {isAdmin && !ev.closed && (
+                  <Button size="sm" variant={i === 0 ? "secondary" : "outline"} className="mt-3 h-7 text-xs" onClick={() => doAdmin("lock", r.start, r.end)}>
+                    <CalendarCheck /> Lock in
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <aside className="contents">
@@ -410,7 +418,7 @@ function NameForm({ onSubmit }: { onSubmit: (m: Me) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   return (
     <form
-      className="mx-auto max-w-sm space-y-4 py-6"
+      className="space-y-4 py-4"
       onSubmit={async (e) => {
         e.preventDefault();
         if (!name.trim()) return;
@@ -427,14 +435,14 @@ function NameForm({ onSubmit }: { onSubmit: (m: Me) => Promise<void> }) {
     >
       <div className="space-y-2">
         <Label htmlFor="name">Your name</Label>
-        <Input id="name" autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="Alex" />
+        <Input id="name" required autoComplete="given-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="Alex" />
       </div>
       <div className="space-y-2">
         <Label htmlFor="pin">4-digit PIN <span className="font-normal text-muted-foreground">(optional, to edit later)</span></Label>
         <Input id="pin" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="••••" />
       </div>
       <Button type="submit" className="w-full" disabled={busy}>
-        {busy && <Loader2 className="animate-spin" />} Continue
+        {busy && <Loader2 className="animate-spin" />} {busy ? "Joining…" : "Continue to time selection"}
       </Button>
     </form>
   );
