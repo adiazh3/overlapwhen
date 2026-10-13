@@ -22,9 +22,6 @@ export type EventRow = {
 };
 export type ResponseRow = { id: string; name: string; slots: number[]; updated_at: string };
 
-const EVENT_COLS =
-  "id,title,description,start_date,end_date,start_minute,end_minute,slot_minutes,timezone,expires_at,closed,final_start,final_end,created_at,dates";
-
 function publicClient() {
   const url = process.env["SUPABASE_URL"]!;
   const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
@@ -58,18 +55,12 @@ export const getEventData = createServerFn({ method: "GET" })
   .inputValidator((input: { id: string }) => z.object({ id: z.string().min(1).max(40) }).parse(input))
   .handler(async ({ data }) => {
     const sb = publicClient();
-    const { data: ev, error } = await sb.from("events").select(EVENT_COLS).eq("id", data.id).maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!ev) return { event: null as EventRow | null, responses: [] as ResponseRow[] };
-    const { data: rs, error: e2 } = await sb
-      .from("responses")
-      .select("id,name,slots,updated_at")
-      .eq("event_id", data.id)
-      .order("created_at");
-    if (e2) throw new Error(e2.message);
+    const { data: result, error } = await sb.rpc("read_shared_poll", { p_event_id: data.id });
+    if (error) throw new Error("Couldn't load this poll. Please try again.");
+    const poll = result as { event: EventRow | null; responses: ResponseRow[] };
     return {
-      event: ev as EventRow,
-      responses: (rs ?? []).map((r) => ({ ...r, slots: (r.slots ?? []).map(Number) })) as ResponseRow[],
+      event: poll.event,
+      responses: (poll.responses ?? []).map((r) => ({ ...r, slots: (r.slots ?? []).map(Number) })),
     };
   });
 

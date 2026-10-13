@@ -18,7 +18,6 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,19 +91,16 @@ function EventPage() {
     }
   }, [id, search.admin]);
 
-  // Realtime updates
+  // Direct table subscriptions are intentionally denied; refresh the scoped shared-link read.
   useEffect(() => {
-    const ch = supabase
-      .channel(`event-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "responses", filter: `event_id=eq.${id}` }, () =>
-        qc.invalidateQueries({ queryKey: ["event", id] }),
-      )
-      .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `id=eq.${id}` }, () =>
-        qc.invalidateQueries({ queryKey: ["event", id] }),
-      )
-      .subscribe();
+    const refresh = () => {
+      if (document.visibilityState === "visible") qc.invalidateQueries({ queryKey: ["event", id] });
+    };
+    const timer = window.setInterval(refresh, 5000);
+    window.addEventListener("focus", refresh);
     return () => {
-      supabase.removeChannel(ch);
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
     };
   }, [id, qc]);
 
