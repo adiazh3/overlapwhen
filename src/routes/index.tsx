@@ -107,7 +107,7 @@ function Index() {
           </p>
           <ul className="mt-8 space-y-3 text-sm">
             <li className="flex items-center gap-3">
-              <Users className="size-4 text-muted-foreground" /> Built for groups of 3–6
+              <Users className="size-4 text-muted-foreground" /> Built for groups
             </li>
             <li className="flex items-center gap-3">
               <Sparkles className="size-4 text-muted-foreground" /> Top times picked for you automatically
