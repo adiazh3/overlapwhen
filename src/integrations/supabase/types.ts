@@ -114,7 +114,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      read_shared_poll: { Args: { p_event_id: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

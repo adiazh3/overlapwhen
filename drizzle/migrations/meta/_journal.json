@@ -15,6 +15,13 @@
       "when": 1791847286977,
       "tag": "0001_event_specific_dates",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791931487137,
+      "tag": "0002_restrict_poll_reads_to_shared_link",
+      "breakpoints": true
     }
   ]
 }
