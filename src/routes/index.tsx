@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { createEvent } from "@/lib/events.functions";
+import { TimePicker } from "@/components/TimePicker";
+import { type TimeIncrement } from "@/lib/time-picker";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -24,10 +26,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const HOURS = Array.from({ length: 25 }, (_, h) => h);
-const hourLabel = (h: number) =>
-  h === 0 || h === 24 ? "12:00 AM" : h === 12 ? "12:00 PM" : h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
-
 function isoDate(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -42,8 +40,9 @@ function Index() {
   const [description, setDescription] = useState("");
   const [days, setDays] = useState<Date[]>([]);
   const [today, setToday] = useState<Date | null>(null);
-  const [startHour, setStartHour] = useState(9);
-  const [endHour, setEndHour] = useState(21);
+  const [startMinute, setStartMinute] = useState(540);
+  const [endMinute, setEndMinute] = useState(1260);
+  const [timeIncrement, setTimeIncrement] = useState<TimeIncrement>(15);
   const [slot, setSlot] = useState<15 | 30 | 45 | 60>(30);
   const [tz, setTz] = useState("UTC");
   const [busy, setBusy] = useState(false);
@@ -60,19 +59,22 @@ function Index() {
     e.preventDefault();
     if (!title.trim()) { toast.error("Give your event a name"); return; }
     if (days.length === 0) { toast.error("Pick at least one day"); return; }
-    if (endHour <= startHour) { toast.error("End time must be after start time"); return; }
+    if (endMinute <= startMinute) { toast.error("End time must be after start time"); return; }
     const dates = [...new Set(days.map(isoDate))].sort();
+    const firstDate = dates[0];
+    const lastDate = dates.at(-1);
+    if (!firstDate || !lastDate) return;
     setBusy(true);
     try {
       const res = await create({
         data: {
           title,
           description,
-          start_date: dates[0]!,
-          end_date: dates[dates.length - 1]!,
+          start_date: firstDate,
+          end_date: lastDate,
           dates,
-          start_minute: startHour * 60,
-          end_minute: endHour * 60,
+          start_minute: startMinute,
+          end_minute: endMinute,
           slot_minutes: slot,
           timezone: tz,
         },
@@ -84,9 +86,6 @@ function Index() {
       setBusy(false);
     }
   }
-
-  const selectCls =
-    "h-10 w-full rounded-md border border-input bg-card px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-5 py-10 md:py-16">
@@ -153,22 +152,31 @@ function Index() {
               />
             </div>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label>Time increments</Label>
+            <div className="flex gap-1 rounded-md bg-muted p-1" role="group" aria-label="Time increments">
+              {([15, 60] as const).map((increment) => (
+                <Button key={increment} type="button" size="sm" variant={timeIncrement === increment ? "outline" : "ghost"}
+                  aria-pressed={timeIncrement === increment} onClick={() => {
+                    setTimeIncrement(increment);
+                    if (increment === 60) {
+                      setStartMinute(Math.floor(startMinute / 60) * 60);
+                      setEndMinute(Math.ceil(endMinute / 60) * 60);
+                    }
+                  }}>
+                  {increment === 15 ? "15 min" : "1 hour"}
+                </Button>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="sh">No earlier than</Label>
-              <select id="sh" className={selectCls} value={startHour} onChange={(e) => setStartHour(+e.target.value)}>
-                {HOURS.slice(0, 24).map((h) => (
-                  <option key={h} value={h}>{hourLabel(h)}</option>
-                ))}
-              </select>
+              <TimePicker id="sh" label="No earlier than" value={startMinute} onChange={setStartMinute} increment={timeIncrement} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="eh">No later than</Label>
-              <select id="eh" className={selectCls} value={endHour} onChange={(e) => setEndHour(+e.target.value)}>
-                {HOURS.slice(1).map((h) => (
-                  <option key={h} value={h}>{hourLabel(h)}</option>
-                ))}
-              </select>
+              <TimePicker id="eh" label="No later than" value={endMinute} onChange={setEndMinute} increment={timeIncrement} includeMidnight />
             </div>
           </div>
           <div className="space-y-2">
