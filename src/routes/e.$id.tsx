@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import {
   CalendarCheck,
-  CalendarClock,
   Check,
   Copy,
   Download,
@@ -201,13 +200,7 @@ function EventPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
-      <header className="mb-6 flex items-center justify-between gap-3">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <CalendarClock className="size-3.5" />
-          </div>
-          <span className="font-display font-semibold">Overlap</span>
-        </Link>
+      <header className="mb-6 flex justify-end">
         <Button variant="outline" size="sm" onClick={() => copy(shareUrl, "Link copied")}>
           <Copy /> Copy share link
         </Button>
