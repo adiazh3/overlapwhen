@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Layers, Users, CalendarCheck, Play, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Layers, Users, CalendarCheck, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import discoverMedia from "@/assets/tutorial-discover.mp4.asset.json";
+import conflictsMedia from "@/assets/tutorial-conflicts.mp4.asset.json";
+import resolveMedia from "@/assets/tutorial-resolve.mp4.asset.json";
 
-type Slide = { icon: LucideIcon; step: string; title: string; body: string; media?: string };
+type Slide = { icon: LucideIcon; step: string; title: string; body: string; media: string };
 
 const SLIDES: Slide[] = [
   {
@@ -11,18 +14,21 @@ const SLIDES: Slide[] = [
     step: "Step 1",
     title: "Discovering Overlaps",
     body: "Everyone paints the times they're free — no sign-up needed. Overlap layers each answer together so the best windows light up instantly.",
+    media: discoverMedia.url,
   },
   {
     icon: Users,
     step: "Step 2",
     title: "Managing Conflicts",
     body: "Tap any time to see who's in and who's missing. Spot the gaps at a glance and nudge the people you haven't heard from yet.",
+    media: conflictsMedia.url,
   },
   {
     icon: CalendarCheck,
     step: "Step 3",
     title: "Resolving and Syncing",
     body: "Lock in the winning time with one click. Everyone gets a summary with Google Calendar and Outlook links, ready to go.",
+    media: resolveMedia.url,
   },
 ];
 
