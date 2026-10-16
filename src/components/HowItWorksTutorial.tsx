@@ -71,10 +71,9 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="grid gap-6 p-5 md:grid-cols-2 md:gap-10 md:p-8"
           >
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-navy shadow-inner">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-card shadow-inner">
               <video
                 src={slide.media}
-                alt=""
                 autoPlay
                 loop
                 muted
