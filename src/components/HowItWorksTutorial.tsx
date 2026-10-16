@@ -76,14 +76,16 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
           >
             <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-card shadow-inner">
               <video
-                src={slide.media}
                 autoPlay
                 loop
                 muted
                 playsInline
                 preload="auto"
                 className="h-full w-full object-cover"
-              />
+              >
+                <source src={slide.media.mp4} type="video/mp4" />
+                <source src={slide.media.webm} type="video/webm" />
+              </video>
             </div>
             <div className="flex flex-col justify-center">
               <div className="mb-4 flex items-center gap-3">
