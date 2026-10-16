@@ -3,6 +3,7 @@ import { CircleHelp } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { HowItWorksTutorial } from "@/components/HowItWorksTutorial";
 
+/** Compact top-bar trigger that opens the "How it works" slideshow in a modal. */
 export function TutorialHelp() {
   const [open, setOpen] = useState(false);
 
@@ -11,10 +12,11 @@ export function TutorialHelp() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="How it works — open tutorial"
-        className="fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-label="How it works"
+        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <CircleHelp className="h-6 w-6" />
+        <CircleHelp className="size-4" />
+        <span className="hidden sm:inline">How it works</span>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
