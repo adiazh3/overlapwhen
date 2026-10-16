@@ -88,13 +88,8 @@ function Index() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-5 py-10 md:py-16">
-      <header className="mb-10 flex items-center gap-2">
-        <div className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-          <CalendarClock className="size-4" />
-        </div>
-        <span className="font-display text-lg font-semibold">Overlap</span>
-      </header>
+    <main className="mx-auto min-h-[calc(100vh-3.5rem)] max-w-5xl px-5 py-10 md:py-16">
+
 
       <div className="grid gap-10 md:grid-cols-[1fr_1.1fr] md:gap-14">
         <section className="md:pt-6">
