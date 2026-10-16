@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Layers, Users, CalendarCheck, Play, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Layers, Users, CalendarCheck, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import discoverMedia from "@/assets/tutorial-discover.mp4.asset.json";
+import conflictsMedia from "@/assets/tutorial-conflicts.mp4.asset.json";
+import resolveMedia from "@/assets/tutorial-resolve.mp4.asset.json";
+import discoverWebm from "@/assets/tutorial-discover.webm";
+import conflictsWebm from "@/assets/tutorial-conflicts.webm";
+import resolveWebm from "@/assets/tutorial-resolve.webm";
 
-type Slide = { icon: LucideIcon; step: string; title: string; body: string; media?: string };
+type Slide = { icon: LucideIcon; step: string; title: string; body: string; media: { mp4: string; webm: string } };
 
 const SLIDES: Slide[] = [
   {
@@ -11,18 +17,21 @@ const SLIDES: Slide[] = [
     step: "Step 1",
     title: "Discovering Overlaps",
     body: "Everyone paints the times they're free — no sign-up needed. Overlap layers each answer together so the best windows light up instantly.",
+    media: { mp4: discoverMedia.url, webm: discoverWebm },
   },
   {
     icon: Users,
     step: "Step 2",
     title: "Managing Conflicts",
     body: "Tap any time to see who's in and who's missing. Spot the gaps at a glance and nudge the people you haven't heard from yet.",
+    media: { mp4: conflictsMedia.url, webm: conflictsWebm },
   },
   {
     icon: CalendarCheck,
     step: "Step 3",
     title: "Resolving and Syncing",
     body: "Lock in the winning time with one click. Everyone gets a summary with Google Calendar and Outlook links, ready to go.",
+    media: { mp4: resolveMedia.url, webm: resolveWebm },
   },
 ];
 
@@ -65,17 +74,18 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="grid gap-6 p-5 md:grid-cols-2 md:gap-10 md:p-8"
           >
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-gradient-to-br from-accent to-secondary shadow-inner">
-              {slide.media ? (
-                <img src={slide.media} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-muted-foreground">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-md">
-                    <Play className="h-6 w-6 translate-x-0.5 text-primary" />
-                  </div>
-                  <span className="text-xs font-medium uppercase tracking-wider">Video / GIF placeholder</span>
-                </div>
-              )}
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-card shadow-inner">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="h-full w-full object-cover"
+              >
+                <source src={slide.media.mp4} type="video/mp4" />
+                <source src={slide.media.webm} type="video/webm" />
+              </video>
             </div>
             <div className="flex flex-col justify-center">
               <div className="mb-4 flex items-center gap-3">
