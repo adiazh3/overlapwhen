@@ -14,3 +14,4 @@
 - Poll views refresh the scoped shared-link read every five seconds while visible and on window focus, rather than direct table subscriptions. Why: preserve automatic group updates without granting unrestricted table reads.
 - Availability slots are stored as UTC epoch minutes; grid math lives in src/lib/slots.ts. Why: viewers in different timezones share one source of truth.
 - Creation time pickers store minutes of day and share a reusable scrollable control with pure option helpers. Why: quarter-hour and hourly choices preserve exact boundaries in poll creation.
+- Global chrome (brand link plus the "How it works" tutorial trigger) lives in src/components/SiteHeader.tsx, mounted once in src/routes/__root.tsx above <Outlet />; page-level headers hold only page-specific actions and never duplicate branding. Why: the tutorial must stay reachable from every page without a floating control covering page content.
