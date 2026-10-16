@@ -71,17 +71,17 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="grid gap-6 p-5 md:grid-cols-2 md:gap-10 md:p-8"
           >
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-gradient-to-br from-accent to-secondary shadow-inner">
-              {slide.media ? (
-                <img src={slide.media} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-muted-foreground">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-md">
-                    <Play className="h-6 w-6 translate-x-0.5 text-primary" />
-                  </div>
-                  <span className="text-xs font-medium uppercase tracking-wider">Video / GIF placeholder</span>
-                </div>
-              )}
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-navy shadow-inner">
+              <video
+                src={slide.media}
+                alt=""
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="h-full w-full object-cover"
+              />
             </div>
             <div className="flex flex-col justify-center">
               <div className="mb-4 flex items-center gap-3">
