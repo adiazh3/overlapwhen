@@ -1,4 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useHistory } from "@/hooks/use-history";
+import { recordPoll } from "@/lib/poll-history";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { CalendarClock, Loader2, Users, Sparkles } from "lucide-react";
@@ -35,6 +37,7 @@ function isoDate(d: Date) {
 
 function Index() {
   const navigate = useNavigate();
+  const recent = useHistory();
   const create = useServerFn(createEvent);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -80,6 +83,7 @@ function Index() {
         },
       });
       localStorage.setItem(`overlap:admin:${res.id}`, res.admin_token);
+      recordPoll({ id: res.id, title: title.trim(), role: "creator", expiresAt: new Date(Date.now() + 21 * 86400000).toISOString() });
       navigate({ to: "/e/$id", params: { id: res.id }, search: { admin: res.admin_token } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't create the event");
@@ -110,6 +114,24 @@ function Index() {
               <CalendarClock className="size-4 text-muted-foreground" /> Links tidy themselves up after 3 weeks
             </li>
           </ul>
+          {recent.length > 0 && (
+            <div className="mt-8 rounded-xl border bg-card p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-medium">Your recent polls</h2>
+                <Link to="/history" className="text-xs underline">View all ({recent.length})</Link>
+              </div>
+              <ul className="mt-2 space-y-1 text-sm">
+                {recent.slice(0, 3).map((h) => (
+                  <li key={h.id}>
+                    <Link to="/e/$id" params={{ id: h.id }} className="flex justify-between gap-2 rounded px-2 py-1.5 hover:bg-muted">
+                      <span className="truncate">{h.title}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{h.role === "creator" ? "Organizer" : "Answered"}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="mt-10 flex gap-1" aria-hidden>
             {[0.08, 0.2, 0.4, 0.65, 1].map((l) => (
               <div key={l} className="heat-cell h-6 w-10 rounded" style={{ ["--level" as string]: l }} />
