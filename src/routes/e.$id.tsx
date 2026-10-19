@@ -24,6 +24,7 @@ import { AvailabilityGrid } from "@/components/AvailabilityGrid";
 import { adminUpdate, checkName, getEventData, saveResponse, type ResponseRow } from "@/lib/events.functions";
 import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, topTimes } from "@/lib/slots";
 import { cn } from "@/lib/utils";
+import { recordPoll } from "@/lib/poll-history";
 
 const eventQuery = (id: string) =>
   queryOptions({ queryKey: ["event", id], queryFn: () => getEventData({ data: { id } }) });
@@ -111,6 +112,12 @@ function EventPage() {
     setMine(new Set(existing?.slots ?? []));
     loadedFor.current = me.name.toLowerCase();
   }, [me, responses]);
+
+  // Remember this poll in the device's "My polls" list.
+  useEffect(() => {
+    if (!ev?.title) return;
+    recordPoll({ id, title: ev.title, expiresAt: ev.expires_at, name: me?.name, role: adminToken ? "creator" : "participant" });
+  }, [id, ev?.title, ev?.expires_at, me?.name, adminToken]);
 
   const shape = useMemo(() => (ev ? buildGrid(ev) : null), [ev]);
   const tz = tzPick ?? viewerTz ?? ev?.timezone ?? "UTC";
