@@ -164,6 +164,7 @@ function HistoryPage() {
           </Button>
           <Input className="bg-card text-foreground" placeholder="Paste a backup code" value={code} onChange={(e) => setCode(e.target.value)} />
           <Button
+            variant="secondary"
             disabled={!code.trim()}
             onClick={() => {
               try {
