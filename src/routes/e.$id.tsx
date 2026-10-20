@@ -273,7 +273,7 @@ function EventPage() {
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs text-primary-foreground">{me ? <Check className="size-3" /> : "1"}</span>
                 <h3>{me ? `You're joining as ${me.name}` : "Enter your name"}</h3>
-                {me && <Button variant="link" size="sm" className="ml-auto h-auto p-0 text-xs" onClick={() => { setMe(null); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>Change name</Button>}
+                {me && <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setMe(null); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>Change name</Button>}
               </div>
               {!me && (
                 <>
@@ -355,7 +355,7 @@ function EventPage() {
                   {r.count}/{responses.length} free · {r.names.join(", ")}
                 </div>
                 {isAdmin && !ev.closed && (
-                  <Button size="sm" variant={i === 0 ? "default" : "outline"} className="mt-3 h-7 text-xs" onClick={() => doAdmin("lock", r.start, r.end)}>
+                  <Button size="sm" variant={i === 0 ? "default" : "outline"} className="mt-3" onClick={() => doAdmin("lock", r.start, r.end)}>
                     <CalendarCheck /> Lock in
                   </Button>
                 )}
@@ -385,7 +385,7 @@ function EventPage() {
           {isAdmin && !ev.closed && (
             <div className="rounded-2xl border border-dashed p-4 text-xs text-muted-foreground">
               <p className="mb-2"><strong className="text-foreground">You're the organizer.</strong> Lock in a time from the recommendations or the heatmap.</p>
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => doAdmin("close")}>
+              <Button size="sm" variant="outline" onClick={() => doAdmin("close")}>
                 <Lock /> Close poll early
               </Button>
             </div>
@@ -477,9 +477,9 @@ function Reminder({ id, title, shareUrl, responded }: { id: string; title: strin
               </span>
               <span className={cn(done.has(n.toLowerCase()) && "text-muted-foreground line-through")}>{n}</span>
             </span>
-            <button onClick={() => update(names.filter((x) => x !== n))} className="text-muted-foreground hover:text-foreground" aria-label={`Remove ${n}`}>
+            <Button size="icon" variant="ghost" onClick={() => update(names.filter((x) => x !== n))} className="text-muted-foreground hover:text-foreground" aria-label={`Remove ${n}`}>
               <X className="size-3.5" />
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
@@ -492,8 +492,8 @@ function Reminder({ id, title, shareUrl, responded }: { id: string; title: strin
           setDraft("");
         }}
       >
-        <Input className="h-8 text-sm" placeholder="Add a name" value={draft} onChange={(e) => setDraft(e.target.value)} />
-        <Button size="sm" variant="outline" className="h-8" type="submit">Add</Button>
+        <Input className="h-9 min-w-0 text-sm" placeholder="Add a name" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <Button size="sm" variant="outline" type="submit">Add</Button>
       </form>
       <Button
         size="sm"
@@ -536,7 +536,7 @@ function FinalCard({ id, title, description, start, end, tz, isAdmin, onReopen, 
           <Download /> Outlook / Apple (.ics)
         </Button>
         {isAdmin && (
-          <Button size="sm" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" onClick={onReopen}>
+          <Button size="sm" variant="secondary" onClick={onReopen}>
             Reopen poll
           </Button>
         )}
