@@ -3,7 +3,7 @@ import { useHistory } from "@/hooks/use-history";
 import { recordPoll } from "@/lib/poll-history";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { CalendarClock, Loader2, Users, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarClock, Loader2, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
