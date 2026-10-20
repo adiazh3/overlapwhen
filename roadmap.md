@@ -1,4 +1,4 @@
-- [ ] Enable collaborative lock/reopen, preserve early-close protection, and verify cross-device behavior.
+- [x] Enable collaborative lock/reopen, preserve early-close protection, and verify cross-device behavior.
 - [x] Apply the selected capsule style to site-wide action buttons while retaining clear selection controls.
 - [x] Verify button interactions and readability on desktop and mobile.
 - [x] Audit all page actions and improve focus, labels, contrast, and touch targets.
