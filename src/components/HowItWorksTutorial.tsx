@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Layers, Users, CalendarCheck, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import discoverMedia from "@/assets/tutorial-discover.mp4.asset.json";
@@ -43,26 +43,24 @@ const variants = {
 
 export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | undefined }) {
   const [[index, dir], setState] = useState<[number, number]>([0, 0]);
+  const reducedMotion = useReducedMotion();
   const last = SLIDES.length - 1;
   const go = useCallback((to: number) => {
     setState(([cur]) => (to < 0 || to > last || to === cur ? [cur, 0] : [to, to > cur ? 1 : -1]));
   }, [last]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") go(index + 1);
-      if (e.key === "ArrowLeft") go(index - 1);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [go, index]);
 
   const slide = SLIDES[index];
   if (!slide) return null;
   const Icon = slide.icon;
 
   return (
-    <section aria-roledescription="carousel" aria-label="How Overlap works" className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-primary/5">
+    <section aria-roledescription="carousel" aria-label="How Overlap works" onKeyDown={(e) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        go(index + (e.key === "ArrowRight" ? 1 : -1));
+      }
+    }} className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-primary/5">
+      <span className="sr-only" role="status">Slide {index + 1} of {SLIDES.length}: {slide.title}</span>
       <div className="relative min-h-[520px] md:min-h-[360px]">
         <AnimatePresence initial={false} custom={dir} mode="wait">
           <motion.div
@@ -72,7 +70,7 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: reducedMotion ? 0 : 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="grid gap-6 p-5 md:grid-cols-2 md:gap-10 md:p-8"
           >
             <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-card shadow-inner">
@@ -95,7 +93,7 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
                 </span>
                 <span className="eyebrow">{String(slide.step).padStart(2, "0")} / {String(SLIDES.length).padStart(2, "0")}</span>
               </div>
-              <h3 className="font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{slide.title}</h3>
+              <h2 className="font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{slide.title}</h2>
               <p className="mt-3 text-base leading-relaxed text-muted-foreground">{slide.body}</p>
               {index === last && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mt-6">
@@ -124,9 +122,9 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
               aria-label={`Go to slide ${i + 1}`}
               aria-current={i === index}
               onClick={() => go(i)}
-              className="size-9 rounded-full p-0"
+              className="size-11 rounded-full p-0"
             >
-              <span aria-hidden="true" className={`h-2 rounded-full transition-all duration-300 ${i === index ? "w-8 bg-primary" : "w-2 bg-border"}`} />
+              <span aria-hidden="true" className={`h-2 rounded-full transition-all duration-300 ${i === index ? "w-8 bg-primary" : "w-2 bg-muted-foreground"}`} />
             </Button>
           ))}
         </div>

@@ -138,7 +138,7 @@ function HistoryPage() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    aria-label="Remove from list"
+                    aria-label={`Remove ${h.title} from list`}
                     onClick={() => {
                       if (confirm("Remove this poll from your list? The poll itself isn't deleted.")) removePoll(h.id);
                     }}
@@ -163,7 +163,7 @@ function HistoryPage() {
           <Button variant="secondary" className="self-start" disabled={list.length === 0} onClick={() => copy(exportCode(), "Backup code copied")}>
             Copy backup code
           </Button>
-          <Input className="bg-card text-foreground" placeholder="Paste a backup code" value={code} onChange={(e) => setCode(e.target.value)} />
+          <Input aria-label="Backup code to restore" className="bg-card text-foreground" placeholder="Paste a backup code" value={code} onChange={(e) => setCode(e.target.value)} />
           <Button
             variant="secondary"
             className="self-start"

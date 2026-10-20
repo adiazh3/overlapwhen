@@ -106,8 +106,9 @@ function Index() {
                 type="button"
                 size="lg"
                 onClick={() => {
-                  document.getElementById("create-poll")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  setTimeout(() => document.getElementById("title")?.focus({ preventScroll: true }), 400);
+                  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                  document.getElementById("title")?.focus({ preventScroll: true });
+                  document.getElementById("create-poll")?.scrollIntoView({ behavior: reduceMotion ? "instant" : "smooth", block: "start" });
                 }}
               >
                 Start a poll
@@ -193,7 +194,7 @@ function Index() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">Tap any days you want — they don't need to be in a row.</p>
-            <div className="flex justify-center rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <Calendar
                 mode="multiple"
                 selected={days}
