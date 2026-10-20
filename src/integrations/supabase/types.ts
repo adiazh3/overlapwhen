@@ -27,6 +27,7 @@ export type Database = {
           final_end: string | null
           final_start: string | null
           id: string
+          lock_history: Json
           slot_minutes: number
           start_date: string
           start_minute: number
@@ -45,6 +46,7 @@ export type Database = {
           final_end?: string | null
           final_start?: string | null
           id: string
+          lock_history?: Json
           slot_minutes?: number
           start_date: string
           start_minute: number
@@ -63,6 +65,7 @@ export type Database = {
           final_end?: string | null
           final_start?: string | null
           id?: string
+          lock_history?: Json
           slot_minutes?: number
           start_date?: string
           start_minute?: number
