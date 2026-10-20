@@ -186,6 +186,7 @@ function EventPage() {
     [me, ev, id, qc, save],
   );
 
+  const [pending, setPending] = useState<{ action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined } | null>(null);
   const mineRef = useRef(mine);
   mineRef.current = mine;
   const onPaintEnd = useCallback(() => persist(mineRef.current), [persist]);
@@ -193,7 +194,6 @@ function EventPage() {
   if (!ev || !shape) return <Gone title="We couldn't find that poll" body="The link may be mistyped or the poll was removed." />;
   if (now != null && isExpired(ev.expires_at, now))
     return <Gone title="This poll has expired" body="Polls close automatically 3 weeks after they're created to keep things tidy." />;
-  const [pending, setPending] = useState<{ action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined } | null>(null);
   const isAdmin = !!adminToken;
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/e/${id}` : `/e/${id}`;
   const finalStart = ev.final_start ? Math.round(Date.parse(ev.final_start) / 60000) : null;
