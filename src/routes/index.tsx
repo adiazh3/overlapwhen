@@ -242,7 +242,7 @@ function Index() {
                   variant={slot === s ? "secondary" : "ghost"}
                   aria-pressed={slot === s}
                   onClick={() => setSlot(s)}
-                  className={`rounded-md py-1.5 text-sm font-medium transition ${slot === s ? "bg-card shadow-soft" : "text-muted-foreground"}`}
+                  className={`rounded-md py-1.5 text-sm font-medium text-foreground transition ${slot === s ? "bg-card shadow-soft" : ""}`}
                 >
                   {s} min
                 </Button>
