@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as PreviewRouteImport } from './routes/preview'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as EIdRouteImport } from './routes/e.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +31,16 @@ const PreviewRoute = PreviewRouteImport.update({
   path: '/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EIdRoute = EIdRouteImport.update({
   id: '/e/$id',
   path: '/e/$id',
@@ -39,12 +51,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/preview': typeof PreviewRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/e/$id': typeof EIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/preview': typeof PreviewRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/e/$id': typeof EIdRoute
 }
 export interface FileRoutesById {
@@ -52,20 +68,31 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/preview': typeof PreviewRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/e/$id': typeof EIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/history' | '/preview' | '/e/$id'
+  fullPaths: '/' | '/history' | '/preview' | '/privacy' | '/terms' | '/e/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/history' | '/preview' | '/e/$id'
-  id: '__root__' | '/' | '/history' | '/preview' | '/e/$id'
+  to: '/' | '/history' | '/preview' | '/privacy' | '/terms' | '/e/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/history'
+    | '/preview'
+    | '/privacy'
+    | '/terms'
+    | '/e/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoryRoute: typeof HistoryRoute
   PreviewRoute: typeof PreviewRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   EIdRoute: typeof EIdRoute
 }
 
@@ -92,6 +119,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/e/$id': {
       id: '/e/$id'
       path: '/e/$id'
@@ -106,6 +147,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoryRoute: HistoryRoute,
   PreviewRoute: PreviewRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   EIdRoute: EIdRoute,
 }
 export const routeTree = rootRouteImport
