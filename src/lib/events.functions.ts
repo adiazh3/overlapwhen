@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { validatePollAction } from "@/lib/poll-actions";
 
 export type EventRow = {
@@ -20,7 +20,9 @@ export type EventRow = {
   final_end: string | null;
   created_at: string;
   dates: string[] | null;
+  lock_history?: LockEntry[] | null;
 };
+export type LockEntry = { at: string; start: string; end: string };
 export type ResponseRow = { id: string; name: string; slots: number[]; updated_at: string };
 
 function publicClient() {
@@ -197,14 +199,14 @@ export const adminUpdate = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin, ev } = await loadOpenEvent(data.event_id);
     validatePollAction(ev, data);
-    let patch: { closed: boolean; final_start?: string | null; final_end?: string | null };
+    let patch: { closed: boolean; final_start?: string | null; final_end?: string | null; lock_history?: Json };
     if (data.action === "lock") {
       if (data.start == null || data.end == null || data.end <= data.start) throw new Error("Pick a time");
-      patch = {
-        closed: true,
-        final_start: new Date(data.start * 60000).toISOString(),
-        final_end: new Date(data.end * 60000).toISOString(),
-      };
+      const final_start = new Date(data.start * 60000).toISOString();
+      const final_end = new Date(data.end * 60000).toISOString();
+      const prev = Array.isArray(ev.lock_history) ? ev.lock_history : [];
+      const entry: LockEntry = { at: new Date().toISOString(), start: final_start, end: final_end };
+      patch = { closed: true, final_start, final_end, lock_history: [...prev, entry].slice(-50) as Json };
     } else if (data.action === "close") patch = { closed: true };
     else patch = { closed: false, final_start: null, final_end: null };
     const { error } = await supabaseAdmin.from("events").update(patch).eq("id", data.event_id);
