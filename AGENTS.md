@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture
+- Calendar months use intrinsic-height, fixed-layout seven-column tables with square width-driven day buttons and inset focus rings; day buttons override shared minimum sizes. Why: complete months must remain contained without calendar scrollbars at narrow widths.
 - Shared buttons default to non-submit actions, 44px minimum touch targets, and token-based keyboard outlines; form submissions explicitly set their type. Why: prevent accidental submissions and keep controls accessible across input methods.
 - Labeled action buttons use the shared Button's editorial capsule treatment; icon tools and selection controls opt out of arrow decoration. Why: keep actions consistent without confusing calendar, picker, and toggle behavior.
 - No user accounts: all writes go through server functions in src/lib/events.functions.ts using the admin client, which check the organizer token / name PIN. Reads use the publishable client and read_shared_poll RPC, requiring one exact shared-link ID and allowlisting safe fields; anon/authenticated have no direct table access. Why: protect organizer tokens and PIN hashes and prevent cross-poll listing without adding accounts.
