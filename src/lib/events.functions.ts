@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
+import { validatePollAction } from "@/lib/poll-actions";
 
 export type EventRow = {
   id: string;
@@ -177,11 +178,11 @@ export const checkName = createServerFn({ method: "POST" })
 
 export const adminUpdate = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { event_id: string; token: string; action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined }) =>
+    (input: { event_id: string; token?: string | undefined; action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined }) =>
       z
         .object({
-          event_id: z.string().max(40),
-          token: z.string().min(10).max(64),
+          event_id: z.string().regex(/^[a-zA-Z0-9_-]{1,40}$/),
+          token: z.string().min(10).max(64).optional(),
           action: z.enum(["lock", "close", "reopen"]),
           start: z.number().int().optional(),
           end: z.number().int().optional(),
@@ -190,7 +191,7 @@ export const adminUpdate = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin, ev } = await loadOpenEvent(data.event_id);
-    if (ev.admin_token !== data.token) throw new Error("Only the organizer can do that");
+    validatePollAction(ev, data);
     let patch: { closed: boolean; final_start?: string | null; final_end?: string | null };
     if (data.action === "lock") {
       if (data.start == null || data.end == null || data.end <= data.start) throw new Error("Pick a time");
