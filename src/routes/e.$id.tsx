@@ -291,6 +291,7 @@ function EventPage() {
                 <>
                   <p className="text-sm text-muted-foreground">No account needed. Enter your name to join this poll, then choose when you're free.</p>
                   <NameForm
+                    pinRequired={responses.length === 0}
                     onSubmit={async (m) => {
                       const res = await check({ data: { event_id: id, name: m.name, pin: m.pin || undefined } });
                       if (!res.ok) throw new Error(m.pin ? "Wrong PIN for that name" : "That name has a PIN — enter it to edit");
@@ -429,7 +430,7 @@ function PeopleList({ label, names, ok }: { label: string; names: string[]; ok?:
   );
 }
 
-function NameForm({ onSubmit }: { onSubmit: (m: Me) => Promise<void> }) {
+function NameForm({ onSubmit, pinRequired }: { onSubmit: (m: Me) => Promise<void>; pinRequired?: boolean }) {
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -439,6 +440,7 @@ function NameForm({ onSubmit }: { onSubmit: (m: Me) => Promise<void> }) {
       onSubmit={async (e) => {
         e.preventDefault();
         if (!name.trim()) return;
+        if (pinRequired && !pin) { toast.error("As the first to respond, please set a 4-digit PIN"); return; }
         if (pin && !/^\d{4}$/.test(pin)) { toast.error("PIN must be 4 digits"); return; }
         setBusy(true);
         try {
@@ -455,8 +457,8 @@ function NameForm({ onSubmit }: { onSubmit: (m: Me) => Promise<void> }) {
         <Input id="name" required autoComplete="given-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="Alex" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="pin">4-digit PIN <span className="font-normal text-muted-foreground">(optional, to edit later)</span></Label>
-        <Input id="pin" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="••••" />
+        <Label htmlFor="pin">4-digit PIN <span className="font-normal text-muted-foreground">{pinRequired ? "(required — you're first to respond)" : "(optional, to edit later)"}</span></Label>
+        <Input id="pin" inputMode="numeric" required={pinRequired} pattern="\d{4}" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="••••" />
       </div>
       <Button type="submit" className="w-full" disabled={busy}>
         {busy && <Loader2 className="animate-spin" />} {busy ? "Joining…" : "Continue to time selection"}
