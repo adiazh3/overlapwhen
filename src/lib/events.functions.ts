@@ -210,7 +210,7 @@ export const adminUpdate = createServerFn({ method: "POST" })
       patch = { closed: true, final_start, final_end, lock_history: [...prev, entry].slice(-50) as Json };
     } else if (data.action === "close") patch = { closed: true };
     else patch = { closed: false, final_start: null, final_end: null };
-    const { error } = await supabaseAdmin.from("events").update(patch).eq("id", data.event_id);
+    const { error } = await supabaseAdmin.from("events").update(patch as never).eq("id", data.event_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
