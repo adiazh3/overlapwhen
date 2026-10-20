@@ -110,7 +110,6 @@ function Index() {
                   setTimeout(() => document.getElementById("title")?.focus({ preventScroll: true }), 400);
                 }}
               >
-                <span className="opacity-60">01 /</span>
                 <span>Start a poll</span>
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-background text-foreground transition-colors duration-300 group-hover:bg-foreground group-hover:text-background">
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
