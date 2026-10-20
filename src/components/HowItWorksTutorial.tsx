@@ -89,16 +89,16 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
             </div>
             <div className="flex flex-col justify-center">
               <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md">
-                  <Icon className="h-5 w-5" />
+                <span className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-foreground">
+                  <Icon className="h-4 w-4" />
                 </span>
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{slide.step} of {SLIDES.length}</span>
+                <span className="eyebrow">{String(slide.step).padStart(2, "0")} / {String(SLIDES.length).padStart(2, "0")}</span>
               </div>
-              <h3 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">{slide.title}</h3>
+              <h3 className="font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{slide.title}</h3>
               <p className="mt-3 text-base leading-relaxed text-muted-foreground">{slide.body}</p>
               {index === last && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mt-6">
-                  <Button size="lg" className="rounded-xl shadow-lg shadow-primary/20" onClick={onFinish}>
+                  <Button size="lg" onClick={onFinish}>
                     Get Started <ArrowRight className="ml-1 h-4 w-4" />
                   </Button>
                 </motion.div>

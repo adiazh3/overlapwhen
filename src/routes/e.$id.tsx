@@ -213,10 +213,11 @@ function EventPage() {
         </Button>
       </header>
 
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold md:text-4xl">{ev.title}</h1>
-        {ev.description && <p className="mt-2 max-w-2xl text-muted-foreground">{ev.description}</p>}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+      <div className="rise-in mb-10">
+        <p className="eyebrow">Poll — {ev.slot_minutes} min slots</p>
+        <h1 className="mt-3 text-4xl leading-[0.95] tracking-[-0.045em] md:text-6xl">{ev.title}</h1>
+        {ev.description && <p className="mt-4 max-w-2xl text-muted-foreground">{ev.description}</p>}
+        <div className="eyebrow mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
           <span>{responses.length} responded</span>
           {daysLeft != null && (
             <span className="flex items-center gap-1">
@@ -257,8 +258,9 @@ function EventPage() {
 
       <div className="grid items-start gap-6 md:grid-cols-2">
         <section className="min-w-0 border-t pt-5" aria-labelledby="your-availability">
+          <p className="eyebrow mb-1">01–02 — You</p>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 id="your-availability" className="text-base font-semibold">Your availability</h2>
+            <h2 id="your-availability" className="text-2xl">Your availability</h2>
             {me && !ev.closed && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
@@ -304,9 +306,10 @@ function EventPage() {
         </section>
 
         <section className="min-w-0 border-t pt-5" aria-labelledby="group-availability">
+          <p className="eyebrow mb-1">03 — Group</p>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 id="group-availability" className="text-base font-semibold">Group's availability</h2>
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="size-1.5 rounded-full bg-success" /> Live updates</span>
+            <h2 id="group-availability" className="text-2xl">Group's availability</h2>
+            <span className="eyebrow flex items-center gap-1.5"><span className="size-1.5 animate-pulse rounded-full bg-highlight" /> Live</span>
           </div>
           <p className="mb-4 text-sm text-muted-foreground" role="status">{responses.length === 0 ? "Waiting for the first response. The group grid fills in as everyone selects their times." : `${responses.length} participant${responses.length === 1 ? " has" : "s have"} responded. Darker blocks mean more people are free.`}</p>
           <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -339,20 +342,24 @@ function EventPage() {
       </div>
 
       {recs.length > 0 && (
-        <section className="mt-6 border-t pt-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Trophy className="size-4" /> Top recommended times</h2>
-          <div className="grid gap-2 md:grid-cols-3">
+        <section className="mt-10 border-t pt-6">
+          <p className="eyebrow mb-1">04 — Recommended</p>
+          <h2 className="mb-4 flex items-center gap-2 text-2xl"><Trophy className="size-5" /> Top times</h2>
+          <div className="grid border-t md:grid-cols-3 md:border-t-0">
             {recs.map((r, i) => (
-              <div key={i} className={cn("rounded-xl border p-3", i === 0 && "border-primary bg-primary text-primary-foreground")}>
+              <div key={i} className={cn("flex gap-4 border-b py-4 md:border-b-0 md:border-l md:px-5 md:first:border-l-0 md:first:pl-0")}>
+                <span className={cn("font-display text-4xl font-medium leading-none tabular-nums", i === 0 ? "text-highlight" : "text-muted-foreground")}>{i + 1}</span>
+                <div className="min-w-0">
                 <div className="text-sm font-semibold">{fmtRange(r.start, r.end, tz)}</div>
-                <div className={cn("mt-1 text-xs", i === 0 ? "opacity-80" : "text-muted-foreground")}>
+                <div className="mt-1 text-xs text-muted-foreground">
                   {r.count}/{responses.length} free · {r.names.join(", ")}
                 </div>
                 {isAdmin && !ev.closed && (
-                  <Button size="sm" variant={i === 0 ? "secondary" : "outline"} className="mt-3 h-7 text-xs" onClick={() => doAdmin("lock", r.start, r.end)}>
+                  <Button size="sm" variant={i === 0 ? "default" : "outline"} className="mt-3 h-7 text-xs" onClick={() => doAdmin("lock", r.start, r.end)}>
                     <CalendarCheck /> Lock in
                   </Button>
                 )}
+                </div>
               </div>
             ))}
           </div>
@@ -515,9 +522,9 @@ function FinalCard({ id, title, description, start, end, tz, isAdmin, onReopen, 
     URL.revokeObjectURL(url);
   };
   return (
-    <section className="mb-6 rounded-2xl bg-primary p-5 text-primary-foreground shadow-soft md:p-6">
-      <div className="text-xs uppercase tracking-widest opacity-70">It's happening</div>
-      <div className="mt-1 font-display text-2xl font-semibold">{fmtRange(start, end, tz)}</div>
+    <section className="mb-8 rounded-lg bg-band p-6 text-band-foreground md:p-8">
+      <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-band-muted"><span className="size-1.5 rounded-full bg-highlight" /> It's happening</div>
+      <div className="mt-3 font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{fmtRange(start, end, tz)}</div>
       {names.length > 0 && <div className="mt-1 text-sm opacity-80">With {names.join(", ")}</div>}
       <div className="mt-4 flex flex-wrap gap-2">
         <Button asChild size="sm" variant="secondary">

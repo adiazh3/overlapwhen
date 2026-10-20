@@ -52,11 +52,12 @@ function HistoryPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-10">
-      <h1 className="text-3xl font-semibold">My polls</h1>
+    <main className="mx-auto max-w-3xl px-5 py-12 md:py-20">
+      <p className="eyebrow">Saved on this device</p>
+      <h1 className="display-xl mt-4">My polls</h1>
       <p className="mt-2 text-muted-foreground">Every poll you've created or answered on this device appears here automatically.</p>
 
-      <div className="mt-4 flex gap-3 rounded-xl border bg-muted/40 p-4 text-sm">
+      <div className="mt-4 flex gap-3 border-y py-4 text-sm">
         <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         <p>
           This list is saved in <strong>this browser only</strong>. Clearing browsing data or switching phones/computers won't show it.
@@ -95,9 +96,9 @@ function HistoryPage() {
         ))}
       </div>
 
-      <ul className="mt-6 space-y-3">
+      <ul className="mt-6 border-t">
         {shown.length === 0 && (
-          <li className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+          <li className="border-b py-10 text-center text-sm text-muted-foreground">
             {list.length === 0 ? (
               <>
                 No polls yet. <Link to="/" className="underline">Create one</Link> or open a link someone shared — it'll show up here.
@@ -111,14 +112,14 @@ function HistoryPage() {
           const days = h.expiresAt ? Math.ceil((Date.parse(h.expiresAt) - Date.now()) / 86400000) : null;
           const url = `${window.location.origin}/e/${h.id}`;
           return (
-            <li key={h.id} className="rounded-xl border bg-card p-4 shadow-soft">
+            <li key={h.id} className="border-b py-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <Link to="/e/$id" params={{ id: h.id }} className="font-medium hover:underline">
+                  <Link to="/e/$id" params={{ id: h.id }} className="font-display text-lg font-medium hover:text-highlight">
                     {h.title}
                   </Link>
-                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <span className="rounded bg-muted px-1.5 py-0.5">{h.role === "creator" ? "Organizer" : "Participant"}</span>
+                  <div className="eyebrow mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                    <span className="text-foreground">{h.role === "creator" ? "Organizer" : "Participant"}</span>
                     {h.name && <span>Answered as {h.name}</span>}
                     {days != null && <span>{days > 0 ? `Expires in ${days} day${days === 1 ? "" : "s"}` : "Expired"}</span>}
                     <span>Opened {new Date(h.lastVisitedAt).toLocaleDateString()}</span>
@@ -150,7 +151,7 @@ function HistoryPage() {
         })}
       </ul>
 
-      <section className="mt-10 rounded-xl border bg-card p-5">
+      <section className="mt-12 rounded-lg bg-band p-6 text-band-foreground [&_p]:text-band-muted">
         <h2 className="flex items-center gap-2 font-medium">
           <KeyRound className="size-4" /> Use on another device
         </h2>
@@ -161,8 +162,9 @@ function HistoryPage() {
           <Button variant="outline" disabled={list.length === 0} onClick={() => copy(exportCode(), "Backup code copied")}>
             Copy backup code
           </Button>
-          <Input placeholder="Paste a backup code" value={code} onChange={(e) => setCode(e.target.value)} />
+          <Input className="bg-card text-foreground" placeholder="Paste a backup code" value={code} onChange={(e) => setCode(e.target.value)} />
           <Button
+            variant="secondary"
             disabled={!code.trim()}
             onClick={() => {
               try {
