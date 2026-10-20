@@ -2,3 +2,5 @@
 - [x] Verify button interactions and readability on desktop and mobile.
 - [x] Audit all page actions and improve focus, labels, contrast, and touch targets.
 - [x] Verify keyboard, poll, history, and tutorial flows at mobile and desktop sizes.
+- [x] Add availability result charts with participant counts and percentages.
+- [x] Test vote calculations and verify saved results on desktop and mobile.
