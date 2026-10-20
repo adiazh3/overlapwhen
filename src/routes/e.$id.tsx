@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
+import { PollResults } from "@/components/PollResults";
+import { votePercentage } from "@/lib/poll-results";
 import { adminUpdate, checkName, getEventData, saveResponse, type ResponseRow } from "@/lib/events.functions";
 import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, topTimes } from "@/lib/slots";
 import { cn } from "@/lib/utils";
@@ -326,6 +328,7 @@ function EventPage() {
             ) : (
               <>
                 <div className="mb-2 text-sm font-semibold">{fmtRange(active, active + ev.slot_minutes, tz)}</div>
+                <p className="mb-3 text-sm tabular-nums">{activeNames.length} of {responses.length} available · {votePercentage(activeNames.length, responses.length)}%</p>
                 <div className="grid grid-cols-2 gap-2">
                   <PeopleList label="Available" names={activeNames} ok />
                   <PeopleList label="Missing" names={activeMissing} />
@@ -338,6 +341,7 @@ function EventPage() {
               </>
             )}
           </div>
+          <PollResults grid={shape.grid} responses={responses} slotMinutes={ev.slot_minutes} tz={tz} />
         </section>
       </div>
 
@@ -352,7 +356,7 @@ function EventPage() {
                 <div className="min-w-0">
                 <div className="text-sm font-semibold">{fmtRange(r.start, r.end, tz)}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {r.count}/{responses.length} free · {r.names.join(", ")}
+                  {r.count}/{responses.length} free · {votePercentage(r.count, responses.length)}% · {r.names.join(", ")}
                 </div>
                 {isAdmin && !ev.closed && (
                   <Button size="sm" variant={i === 0 ? "default" : "outline"} className="mt-3" onClick={() => doAdmin("lock", r.start, r.end)}>
