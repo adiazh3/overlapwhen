@@ -195,6 +195,8 @@ function EventPage() {
   if (now != null && isExpired(ev.expires_at, now))
     return <Gone title="This poll has expired" body="Polls close automatically 3 weeks after they're created to keep things tidy." />;
   const isAdmin = !!adminToken;
+  const isFirstRespondent = !!me && responses.length > 0 && responses[0]?.name.toLowerCase() === me.name.toLowerCase();
+  const canClose = isAdmin || isFirstRespondent;
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/e/${id}` : `/e/${id}`;
   const finalStart = ev.final_start ? Math.round(Date.parse(ev.final_start) / 60000) : null;
   const finalEnd = ev.final_end ? Math.round(Date.parse(ev.final_end) / 60000) : null;
@@ -203,13 +205,13 @@ function EventPage() {
   const daysLeft = now ? Math.max(0, Math.ceil((Date.parse(ev.expires_at) - now) / 86400000)) : null;
 
   function doAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
-    if (action === "close" && !adminToken) return;
+    if (action === "close" && !adminToken && !isFirstRespondent) return;
     setPending({ action, start, end });
   }
 
   async function runAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
     try {
-      await admin({ data: { event_id: id, token: adminToken ?? undefined, action, start, end } });
+      await admin({ data: { event_id: id, token: adminToken ?? undefined, pin: adminToken ? undefined : me?.pin || undefined, action, start, end } });
       qc.invalidateQueries({ queryKey: ["event", id] });
       toast.success(action === "lock" ? "Final time locked in" : action === "close" ? "Poll closed" : "Poll reopened");
     } catch (e) {
@@ -438,7 +440,7 @@ function EventPage() {
               </div>
             )}
           </div>
-          {isAdmin && !ev.closed && (
+          {canClose && !ev.closed && (
             <div className="rounded-2xl border border-dashed p-4 text-xs text-muted-foreground">
               <p className="mb-2"><strong className="text-foreground">You're the organizer.</strong> Anyone with the link can lock in or reopen a time. Only you can close the poll early.</p>
               <Button size="sm" variant="outline" onClick={() => doAdmin("close")}>

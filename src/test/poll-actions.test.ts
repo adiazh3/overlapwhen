@@ -21,6 +21,10 @@ describe("collaborative scheduling permissions", () => {
     expect(() => validatePollAction(event, { action: "close", token: "wrong-token" })).toThrow("Only the organizer");
     expect(() => validatePollAction(event, { action: "close", token: event.admin_token })).not.toThrow();
   });
+  it("lets the verified first respondent close the poll early", () => {
+    expect(() => validatePollAction(event, { action: "close" }, { firstRespondentAuthorized: true })).not.toThrow();
+    expect(() => validatePollAction(event, { action: "close" }, { firstRespondentAuthorized: false })).toThrow("Only the organizer");
+  });
   it("rejects locking times outside the poll or off slot boundaries", () => {
     for (const [from, to] of [[start - 30, start], [start, start + 150], [start, start + 15]]) {
       expect(() => validatePollAction(event, { action: "lock", start: from, end: to })).toThrow();

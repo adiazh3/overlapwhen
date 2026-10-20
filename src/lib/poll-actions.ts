@@ -5,8 +5,9 @@ export type PollAction = "lock" | "close" | "reopen";
 export function validatePollAction(
   event: EventShape & { admin_token: string },
   input: { action: PollAction; token?: string | undefined; start?: number | undefined; end?: number | undefined },
+  opts?: { firstRespondentAuthorized?: boolean },
 ) {
-  if (input.action === "close" && event.admin_token !== input.token) {
+  if (input.action === "close" && event.admin_token !== input.token && !opts?.firstRespondentAuthorized) {
     throw new Error("Only the organizer can close this poll early");
   }
   if (input.action !== "lock") return;
