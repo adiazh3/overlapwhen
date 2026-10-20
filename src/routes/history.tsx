@@ -162,7 +162,7 @@ function HistoryPage() {
           <Button variant="outline" disabled={list.length === 0} onClick={() => copy(exportCode(), "Backup code copied")}>
             Copy backup code
           </Button>
-          <Input placeholder="Paste a backup code" value={code} onChange={(e) => setCode(e.target.value)} />
+          <Input className="bg-card text-foreground" placeholder="Paste a backup code" value={code} onChange={(e) => setCode(e.target.value)} />
           <Button
             disabled={!code.trim()}
             onClick={() => {
