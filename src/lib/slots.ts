@@ -75,7 +75,7 @@ export function expiryFrom(createdMs: number): Date {
 
 export type Recommendation = { start: number; end: number; count: number; names: string[] };
 
-/** Merge consecutive slots (same day column) with identical attendee sets; return top N. */
+/** Rank individual slots (poll's own slot length) by attendance, earliest first on ties; return top N. */
 export function topTimes(
   grid: number[][],
   slotMinutes: number,
@@ -83,24 +83,14 @@ export function topTimes(
   n = 3,
 ): Recommendation[] {
   const sets = responses.map((r) => ({ name: r.name, set: new Set(r.slots.map(Number)) }));
-  const ranges: Recommendation[] = [];
+  const out: Recommendation[] = [];
   for (const col of grid) {
-    let cur: Recommendation | null = null;
     for (const slot of col) {
       const names = sets.filter((s) => s.set.has(slot)).map((s) => s.name);
-      const key = names.join("|");
-      if (cur && names.length > 0 && cur.names.join("|") === key && cur.end === slot) {
-        cur.end = slot + slotMinutes;
-      } else {
-        if (cur) ranges.push(cur);
-        cur = names.length > 0 ? { start: slot, end: slot + slotMinutes, count: names.length, names } : null;
-      }
+      if (names.length) out.push({ start: slot, end: slot + slotMinutes, count: names.length, names });
     }
-    if (cur) ranges.push(cur);
   }
-  return ranges
-    .sort((a, b) => b.count - a.count || b.end - b.start - (a.end - a.start) || a.start - b.start)
-    .slice(0, n);
+  return out.sort((a, b) => b.count - a.count || a.start - b.start).slice(0, n);
 }
 
 function icsDate(epochMin: number) {

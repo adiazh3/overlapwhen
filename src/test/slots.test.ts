@@ -27,4 +27,11 @@ describe("scheduling rules", () => {
     ]);
     expect(recs[0]).toMatchObject({ start: 30, end: 60, count: 2 });
   });
+
+  it("recommends single slots matching the poll's slot length, not merged blocks", () => {
+    const grid = [[0, 60, 120, 180]];
+    const all = [0, 60, 120, 180];
+    const recs = topTimes(grid, 60, [{ name: "A", slots: all }, { name: "B", slots: all }]);
+    expect(recs.map((r) => [r.start, r.end])).toEqual([[0, 60], [60, 120], [120, 180]]);
+  });
 });
