@@ -522,9 +522,9 @@ function FinalCard({ id, title, description, start, end, tz, isAdmin, onReopen, 
     URL.revokeObjectURL(url);
   };
   return (
-    <section className="mb-6 rounded-2xl bg-primary p-5 text-primary-foreground shadow-soft md:p-6">
-      <div className="text-xs uppercase tracking-widest opacity-70">It's happening</div>
-      <div className="mt-1 font-display text-2xl font-semibold">{fmtRange(start, end, tz)}</div>
+    <section className="mb-8 rounded-lg bg-band p-6 text-band-foreground md:p-8">
+      <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-band-muted"><span className="size-1.5 rounded-full bg-highlight" /> It's happening</div>
+      <div className="mt-3 font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{fmtRange(start, end, tz)}</div>
       {names.length > 0 && <div className="mt-1 text-sm opacity-80">With {names.join(", ")}</div>}
       <div className="mt-4 flex flex-wrap gap-2">
         <Button asChild size="sm" variant="secondary">
