@@ -194,7 +194,7 @@ function Index() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">Tap any days you want — they don't need to be in a row.</p>
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="rounded-lg border">
               <Calendar
                 mode="multiple"
                 selected={days}
