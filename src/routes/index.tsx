@@ -92,54 +92,66 @@ function Index() {
   }
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-3.5rem)] max-w-5xl px-5 py-10 md:py-16">
-
-
-      <div className="grid gap-10 md:grid-cols-[1fr_1.1fr] md:gap-14">
-        <section className="md:pt-6">
-          <h1 className="text-4xl font-semibold leading-[1.05] md:text-5xl">
-            Find the time that works. Skip the group chat.
-          </h1>
-          <p className="mt-4 max-w-md text-muted-foreground">
-            Create a poll in seconds, share the link, and everyone paints when they're free. No accounts, ever.
+    <main className="mx-auto min-h-[calc(100vh-3.5rem)] max-w-6xl px-5 pb-20 pt-10 md:px-6 md:pt-20">
+      <section className="rise-in">
+        <p className="eyebrow">Group scheduling — No accounts</p>
+        <h1 className="display-xl mt-5 max-w-4xl">Find the time that works. Skip the group chat.</h1>
+        <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
+          <p className="max-w-md text-muted-foreground">
+            Create a poll in seconds, share the link, and everyone paints when they're free.
           </p>
-          <ul className="mt-8 space-y-3 text-sm">
-            <li className="flex items-center gap-3">
-              <Users className="size-4 text-muted-foreground" /> Built for groups
-            </li>
-            <li className="flex items-center gap-3">
-              <Sparkles className="size-4 text-muted-foreground" /> Top times picked for you automatically
-            </li>
-            <li className="flex items-center gap-3">
-              <CalendarClock className="size-4 text-muted-foreground" /> Links tidy themselves up after 3 weeks
-            </li>
+          <div className="flex gap-px" aria-hidden>
+            {[0.06, 0.15, 0.3, 0.5, 0.75, 1].map((l) => (
+              <div key={l} className="heat-cell h-8 w-8 md:w-12" style={{ ["--level" as string]: l }} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <ol className="mt-14 grid border-y border-border md:grid-cols-3">
+        {[
+          ["01", "Create", "Pick days and a time window."],
+          ["02", "Share", "Send one link. No sign-ups."],
+          ["03", "Overlap", "Top times are picked for you."],
+        ].map(([n, t, d], i) => (
+          <li key={n} className={`py-6 md:px-6 ${i > 0 ? "border-t border-border md:border-l md:border-t-0" : "md:pl-0"}`}>
+            <span className="eyebrow">{n}</span>
+            <h3 className="mt-3 text-2xl">{t}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{d}</p>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-14 grid gap-10 md:grid-cols-[1fr_1.1fr] md:gap-14">
+        <section>
+          <p className="eyebrow">Start a poll</p>
+          <h2 className="mt-3 text-3xl md:text-4xl">Takes about fifteen seconds.</h2>
+          <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
+            <li className="flex items-center gap-3"><Users className="size-4" /> Built for groups</li>
+            <li className="flex items-center gap-3"><Sparkles className="size-4" /> Top times picked automatically</li>
+            <li className="flex items-center gap-3"><CalendarClock className="size-4" /> Links tidy themselves up after 3 weeks</li>
           </ul>
           {recent.length > 0 && (
-            <div className="mt-8 rounded-xl border bg-card p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-medium">Your recent polls</h2>
-                <Link to="/history" className="text-xs underline">View all ({recent.length})</Link>
+            <div className="mt-10">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <span className="eyebrow">Your recent polls</span>
+                <Link to="/history" className="eyebrow link-underline text-foreground">View all ({recent.length})</Link>
               </div>
-              <ul className="mt-2 space-y-1 text-sm">
+              <ul>
                 {recent.slice(0, 3).map((h) => (
-                  <li key={h.id}>
-                    <Link to="/e/$id" params={{ id: h.id }} className="flex justify-between gap-2 rounded px-2 py-1.5 hover:bg-muted">
+                  <li key={h.id} className="border-b border-border">
+                    <Link to="/e/$id" params={{ id: h.id }} className="flex justify-between gap-2 py-3 text-sm hover:text-highlight">
                       <span className="truncate">{h.title}</span>
-                      <span className="shrink-0 text-xs text-muted-foreground">{h.role === "creator" ? "Organizer" : "Answered"}</span>
+                      <span className="eyebrow shrink-0">{h.role === "creator" ? "Organizer" : "Answered"}</span>
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
           )}
-          <div className="mt-10 flex gap-1" aria-hidden>
-            {[0.08, 0.2, 0.4, 0.65, 1].map((l) => (
-              <div key={l} className="heat-cell h-6 w-10 rounded" style={{ ["--level" as string]: l }} />
-            ))}
-          </div>
         </section>
 
-        <form onSubmit={submit} className="space-y-5 rounded-2xl border bg-card p-6 shadow-soft md:p-8">
+        <form onSubmit={submit} className="space-y-5 rounded-lg border bg-card p-6 shadow-soft md:p-8">
           <div className="space-y-2">
             <Label htmlFor="title">What's the plan?</Label>
             <Input id="title" autoFocus placeholder="Team dinner, D&D night…" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />

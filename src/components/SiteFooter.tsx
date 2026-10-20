@@ -2,13 +2,22 @@ import { Link } from "@tanstack/react-router";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border/60">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-xs text-muted-foreground md:px-6">
-        <span>© {new Date().getFullYear()} Overlap</span>
-        <nav className="flex gap-4">
-          <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
-          <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
-        </nav>
+    <footer className="overflow-hidden bg-band text-band-foreground">
+      <div className="mx-auto w-full max-w-6xl px-5 pt-12 md:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <p className="max-w-xs text-sm text-band-muted">Group scheduling without the group chat. No accounts, ever.</p>
+          <nav className="flex gap-6 font-mono text-[11px] uppercase tracking-[0.14em]">
+            <Link to="/privacy" className="link-underline">Privacy</Link>
+            <Link to="/terms" className="link-underline">Terms</Link>
+            <Link to="/history" className="link-underline">My polls</Link>
+          </nav>
+        </div>
+        <div aria-hidden className="mt-10 select-none font-display text-[22vw] font-medium leading-[0.8] tracking-[-0.06em] opacity-10 md:text-[13rem]">
+          Overlap
+        </div>
+        <div className="border-t border-band-muted/30 py-4 font-mono text-[11px] uppercase tracking-[0.14em] text-band-muted">
+          © {new Date().getFullYear()} Overlap
+        </div>
       </div>
     </footer>
   );
