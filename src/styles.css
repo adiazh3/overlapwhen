@@ -93,6 +93,48 @@
   }
 }
 
+/* Shared editorial action buttons; contrast stays explicit on dark bands. */
+@layer components {
+  .action-button-solid {
+    --action-fill: var(--primary);
+    --action-ink: var(--primary-foreground);
+  }
+  .action-button-outline {
+    --action-fill: var(--card);
+    --action-ink: var(--foreground);
+  }
+  .action-button-light {
+    --action-fill: var(--secondary);
+    --action-ink: var(--secondary-foreground);
+  }
+  .action-button-destructive {
+    --action-fill: var(--destructive);
+    --action-ink: var(--destructive-foreground);
+  }
+  .action-button {
+    background: var(--action-fill);
+    color: var(--action-ink);
+    border-color: var(--action-ink);
+  }
+  .action-button-solid, .action-button-destructive {
+    border-color: var(--action-fill);
+  }
+  .action-button-arrow {
+    background: var(--action-ink);
+    color: var(--action-fill);
+  }
+  @media (hover: hover) {
+    .action-button:hover {
+      background: var(--action-ink);
+      color: var(--action-fill);
+    }
+    .action-button:hover .action-button-arrow {
+      background: var(--action-fill);
+      color: var(--action-ink);
+    }
+  }
+}
+
 @utility shadow-soft {
   box-shadow: var(--shadow-soft);
 }

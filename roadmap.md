@@ -1,0 +1,2 @@
+- [x] Apply the selected capsule style to site-wide action buttons while retaining clear selection controls.
+- [x] Verify button interactions and readability on desktop and mobile.

@@ -57,7 +57,8 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
     return () => window.removeEventListener("keydown", onKey);
   }, [go, index]);
 
-  const slide = SLIDES[index]!;
+  const slide = SLIDES[index];
+  if (!slide) return null;
   const Icon = slide.icon;
 
   return (
@@ -99,7 +100,7 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
               {index === last && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mt-6">
                   <Button size="lg" onClick={onFinish}>
-                    Get Started <ArrowRight className="ml-1 h-4 w-4" />
+                    Get Started
                   </Button>
                 </motion.div>
               )}
@@ -114,13 +115,19 @@ export function HowItWorksTutorial({ onFinish }: { onFinish?: (() => void) | und
         </Button>
         <div className="flex items-center gap-2">
           {SLIDES.map((s, i) => (
-            <button
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              decoration="none"
               key={s.title}
               aria-label={`Go to slide ${i + 1}`}
               aria-current={i === index}
               onClick={() => go(i)}
-              className={`h-2 rounded-full transition-all duration-300 ${i === index ? "w-8 bg-primary" : "w-2 bg-border hover:bg-muted-foreground"}`}
-            />
+              className="size-9 rounded-full p-0"
+            >
+              <span aria-hidden="true" className={`h-2 rounded-full transition-all duration-300 ${i === index ? "w-8 bg-primary" : "w-2 bg-border"}`} />
+            </Button>
           ))}
         </div>
         <Button variant="ghost" size="icon" className="rounded-full" aria-label="Next slide" disabled={index === last} onClick={() => go(index + 1)}>

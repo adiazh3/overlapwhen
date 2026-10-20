@@ -3,7 +3,7 @@ import { useHistory } from "@/hooks/use-history";
 import { recordPoll } from "@/lib/poll-history";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { ArrowRight, CalendarClock, Loader2, Users, Sparkles } from "lucide-react";
+import { CalendarClock, Loader2, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,19 +102,16 @@ function Index() {
               Create a poll in seconds, share the link, and everyone paints when they're free.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-4">
-              <button
+              <Button
                 type="button"
-                className="group inline-flex h-12 items-center gap-3 rounded-full border border-foreground bg-foreground pl-6 pr-2 font-mono text-xs uppercase tracking-[0.14em] text-background transition-colors duration-300 hover:bg-transparent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                size="lg"
                 onClick={() => {
                   document.getElementById("create-poll")?.scrollIntoView({ behavior: "smooth", block: "start" });
                   setTimeout(() => document.getElementById("title")?.focus({ preventScroll: true }), 400);
                 }}
               >
-                <span>Start a poll</span>
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-background text-foreground transition-colors duration-300 group-hover:bg-foreground group-hover:text-background">
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-                </span>
-              </button>
+                Start a poll
+              </Button>
               <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-highlight opacity-60" />
@@ -191,7 +188,7 @@ function Index() {
               <Label>Which days?</Label>
               <span className="text-xs text-muted-foreground">
                 {days.length} selected{days.length > 0 && (
-                  <button type="button" className="ml-2 underline" onClick={() => setDays([])}>clear</button>
+                  <Button type="button" variant="link" size="sm" className="ml-2" onClick={() => setDays([])}>clear</Button>
                 )}
               </span>
             </div>
@@ -236,14 +233,18 @@ function Index() {
             <Label>Slot size</Label>
             <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
               {([15, 30, 45, 60] as const).map((s) => (
-                <button
+                <Button
                   type="button"
                   key={s}
+                  decoration="none"
+                  size="sm"
+                  variant={slot === s ? "secondary" : "ghost"}
+                  aria-pressed={slot === s}
                   onClick={() => setSlot(s)}
                   className={`rounded-md py-1.5 text-sm font-medium transition ${slot === s ? "bg-card shadow-soft" : "text-muted-foreground"}`}
                 >
                   {s} min
-                </button>
+                </Button>
               ))}
             </div>
           </div>
