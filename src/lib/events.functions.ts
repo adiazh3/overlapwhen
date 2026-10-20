@@ -185,11 +185,16 @@ export const checkName = createServerFn({ method: "POST" })
 
 export const adminUpdate = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { event_id: string; token?: string | undefined; action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined }) =>
+    (input: { event_id: string; token?: string | undefined; pin?: string | undefined; action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined }) =>
       z
         .object({
           event_id: z.string().regex(/^[a-zA-Z0-9_-]{1,40}$/),
           token: z.string().min(10).max(64).optional(),
+          pin: z
+            .string()
+            .regex(/^\d{4}$/)
+            .optional()
+            .or(z.literal("").transform(() => undefined)),
           action: z.enum(["lock", "close", "reopen"]),
           start: z.number().int().optional(),
           end: z.number().int().optional(),
@@ -198,7 +203,20 @@ export const adminUpdate = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin, ev } = await loadOpenEvent(data.event_id);
-    validatePollAction(ev, data);
+    let firstRespondentAuthorized = false;
+    if (data.action === "close" && data.pin) {
+      const { data: first } = await supabaseAdmin
+        .from("responses")
+        .select("pin_hash")
+        .eq("event_id", data.event_id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (first?.pin_hash) {
+        firstRespondentAuthorized = first.pin_hash === (await sha(`${data.event_id}:${data.pin}`));
+      }
+    }
+    validatePollAction(ev, data, { firstRespondentAuthorized });
     let patch: { closed: boolean; final_start?: string | null; final_end?: string | null; lock_history?: Json };
     if (data.action === "lock") {
       if (data.start == null || data.end == null || data.end <= data.start) throw new Error("Pick a time");
