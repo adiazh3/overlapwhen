@@ -150,6 +150,11 @@ export const saveResponse = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { ok: true };
     }
+    const { count } = await supabaseAdmin
+      .from("responses")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", data.event_id);
+    if (!count && !pinHash) throw new Error("The first person to respond must set a 4-digit PIN");
     const { error } = await supabaseAdmin
       .from("responses")
       .insert({ event_id: data.event_id, name: data.name, slots: data.slots, pin_hash: pinHash });
