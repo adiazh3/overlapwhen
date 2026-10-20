@@ -234,7 +234,7 @@ function EventPage() {
             <span className="relative inline-grid">
               <span aria-hidden="true" className="invisible col-start-1 row-start-1 whitespace-nowrap px-1.5 py-1.5 text-xs">
                 {tzLabel}
-                <span className="inline-block w-4" />
+                <span className="inline-block w-7" />
               </span>
               <select
                 id="tzpick"
@@ -243,7 +243,7 @@ function EventPage() {
                   setTzPick(e.target.value);
                   localStorage.setItem(`overlap:tz:${id}`, e.target.value);
                 }}
-                className="absolute inset-0 h-full w-full min-w-0 rounded-md border border-input bg-card px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                className="absolute inset-0 h-full w-full min-w-0 rounded-md border border-input bg-card px-1.5 pr-7 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {tzOptions.map((z) => (
                   <option key={z} value={z}>
