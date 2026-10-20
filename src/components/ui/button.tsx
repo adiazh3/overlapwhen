@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -22,7 +22,7 @@ const buttonVariants = cva(
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        icon: "h-11 w-11 min-w-11",
       },
     },
     defaultVariants: {
@@ -53,7 +53,7 @@ const actionButtonVariants = cva(
       },
       size: {
         default: "min-h-11 pl-5 pr-1.5 py-1.5",
-        sm: "min-h-9 pl-3 pr-1 py-1 text-[10px] gap-2",
+        sm: "min-h-11 pl-3 pr-1 py-1 text-xs gap-2",
         lg: "min-h-12 pl-6 pr-2 py-2",
         icon: "size-9 p-0",
       },
@@ -63,7 +63,7 @@ const actionButtonVariants = cva(
 );
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, decoration, children, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, decoration, children, type = "button", ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     const isAction = decoration !== "none" && size !== "icon" && props["aria-pressed"] === undefined && props.role !== "option";
     const decorate = (content: React.ReactNode) => (
@@ -83,7 +83,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       }
     }
     return (
-      <Comp className={cn(isAction ? actionButtonVariants({ variant, size }) : buttonVariants({ variant, size }), className)} ref={ref} {...props}>{content}</Comp>
+      <Comp className={cn(isAction ? actionButtonVariants({ variant, size }) : buttonVariants({ variant, size }), className)} ref={ref} {...(!asChild && { type })} {...props}>{content}</Comp>
     );
   },
 );

@@ -270,7 +270,7 @@ function EventPage() {
           </div>
           {!ev.closed && (
             <>
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs text-primary-foreground">{me ? <Check className="size-3" /> : "1"}</span>
                 <h3>{me ? `You're joining as ${me.name}` : "Enter your name"}</h3>
                 {me && <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setMe(null); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>Change name</Button>}
@@ -492,7 +492,7 @@ function Reminder({ id, title, shareUrl, responded }: { id: string; title: strin
           setDraft("");
         }}
       >
-        <Input className="h-9 min-w-0 text-sm" placeholder="Add a name" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <Input aria-label="Invitee name" className="h-11 min-w-0 text-sm" placeholder="Add a name" value={draft} onChange={(e) => setDraft(e.target.value)} />
         <Button size="sm" variant="outline" type="submit">Add</Button>
       </form>
       <Button

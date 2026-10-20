@@ -72,6 +72,7 @@
   --border: oklch(0.89 0.008 260);        /* titanium 200 */
   --input: oklch(0.89 0.008 260);
   --ring: var(--cobalt);
+  --overlay: oklch(0.12 0.025 252 / 80%);
   --heat-0: oklch(0.945 0.006 260);
   --shadow-soft: 0 1px 0 oklch(0.2 0.05 252 / 6%), 0 2px 8px -4px oklch(0.2 0.05 252 / 12%);
 }
@@ -85,6 +86,10 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+  :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 3px;
   }
   h1, h2, h3 {
     font-family: var(--font-display);

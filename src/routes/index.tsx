@@ -106,8 +106,9 @@ function Index() {
                 type="button"
                 size="lg"
                 onClick={() => {
-                  document.getElementById("create-poll")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  setTimeout(() => document.getElementById("title")?.focus({ preventScroll: true }), 400);
+                  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                  document.getElementById("title")?.focus({ preventScroll: true });
+                  document.getElementById("create-poll")?.scrollIntoView({ behavior: reduceMotion ? "instant" : "smooth", block: "start" });
                 }}
               >
                 Start a poll
@@ -143,8 +144,8 @@ function Index() {
         ))}
       </ol>
 
-      <div className="mt-14 grid gap-10 md:grid-cols-[1fr_1.1fr] md:gap-14">
-        <section>
+      <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-[1fr_1.1fr] md:gap-14">
+        <section className="min-w-0">
           <p className="eyebrow">Start a poll</p>
           <h2 className="mt-3 text-3xl md:text-4xl">Takes about fifteen seconds.</h2>
           <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
@@ -172,7 +173,7 @@ function Index() {
           )}
         </section>
 
-        <form id="create-poll" onSubmit={submit} className="scroll-mt-20 space-y-5 rounded-lg border bg-card p-6 shadow-soft md:p-8">
+        <form id="create-poll" onSubmit={submit} className="min-w-0 scroll-mt-20 space-y-5 rounded-lg border bg-card p-4 shadow-soft sm:p-6 md:p-8">
           <div className="space-y-2">
             <Label htmlFor="title">What's the plan?</Label>
             <Input id="title" placeholder="Team dinner, D&D night…" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
@@ -193,7 +194,7 @@ function Index() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">Tap any days you want — they don't need to be in a row.</p>
-            <div className="flex justify-center rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <Calendar
                 mode="multiple"
                 selected={days}
@@ -219,7 +220,7 @@ function Index() {
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="sh">No earlier than</Label>
               <TimePicker id="sh" label="No earlier than" value={startMinute} onChange={setStartMinute} increment={timeIncrement} />
@@ -241,7 +242,7 @@ function Index() {
                   variant={slot === s ? "secondary" : "ghost"}
                   aria-pressed={slot === s}
                   onClick={() => setSlot(s)}
-                  className={`rounded-md py-1.5 text-sm font-medium transition ${slot === s ? "bg-card shadow-soft" : "text-muted-foreground"}`}
+                  className={`rounded-md py-1.5 text-sm font-medium text-foreground transition ${slot === s ? "bg-card shadow-soft" : ""}`}
                 >
                   {s} min
                 </Button>
