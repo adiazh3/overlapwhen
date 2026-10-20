@@ -1,4 +1,4 @@
 - [x] Apply the selected capsule style to site-wide action buttons while retaining clear selection controls.
 - [x] Verify button interactions and readability on desktop and mobile.
-- [ ] Audit all page actions and improve focus, labels, contrast, and touch targets.
-- [ ] Verify keyboard, poll, history, and tutorial flows at mobile and desktop sizes.
+- [x] Audit all page actions and improve focus, labels, contrast, and touch targets.
+- [x] Verify keyboard, poll, history, and tutorial flows at mobile and desktop sizes.
