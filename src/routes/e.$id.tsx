@@ -398,7 +398,7 @@ function EventPage() {
           </div>
           {isAdmin && !ev.closed && (
             <div className="rounded-2xl border border-dashed p-4 text-xs text-muted-foreground">
-              <p className="mb-2"><strong className="text-foreground">You're the organizer.</strong> Lock in a time from the recommendations or the heatmap.</p>
+              <p className="mb-2"><strong className="text-foreground">You're the organizer.</strong> Anyone with the link can lock in or reopen a time. Only you can close the poll early.</p>
               <Button size="sm" variant="outline" onClick={() => doAdmin("close")}>
                 <Lock /> Close poll early
               </Button>
