@@ -19,6 +19,16 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
@@ -183,7 +193,7 @@ function EventPage() {
   if (!ev || !shape) return <Gone title="We couldn't find that poll" body="The link may be mistyped or the poll was removed." />;
   if (now != null && isExpired(ev.expires_at, now))
     return <Gone title="This poll has expired" body="Polls close automatically 3 weeks after they're created to keep things tidy." />;
-
+  const [pending, setPending] = useState<{ action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined } | null>(null);
   const isAdmin = !!adminToken;
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/e/${id}` : `/e/${id}`;
   const finalStart = ev.final_start ? Math.round(Date.parse(ev.final_start) / 60000) : null;
@@ -192,8 +202,12 @@ function EventPage() {
   const activeMissing = active != null ? responses.filter((r) => !r.slots.includes(active)).map((r) => r.name) : [];
   const daysLeft = now ? Math.max(0, Math.ceil((Date.parse(ev.expires_at) - now) / 86400000)) : null;
 
-  async function doAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
+  function doAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
     if (action === "close" && !adminToken) return;
+    setPending({ action, start, end });
+  }
+
+  async function runAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
     try {
       await admin({ data: { event_id: id, token: adminToken ?? undefined, action, start, end } });
       qc.invalidateQueries({ queryKey: ["event", id] });
@@ -209,9 +223,35 @@ function EventPage() {
   };
 
   const tzLabel = `${tz.replace(/_/g, " ")}${tz === viewerTz ? " (you)" : tz === ev?.timezone ? " (organizer)" : ""}`;
+  const confirmCopy = pending
+    ? pending.action === "lock"
+      ? { title: "Lock in this time?", body: `${pending.start != null && pending.end != null ? fmtRange(pending.start, pending.end, tz) : ""}. This becomes the final time for everyone and closes voting. Anyone with the link can reopen it later.`, cta: "Lock in time" }
+      : pending.action === "reopen"
+        ? { title: "Reopen this poll?", body: "This clears the locked-in time for everyone so people can change their availability again.", cta: "Reopen poll" }
+        : { title: "Close this poll early?", body: "No one will be able to add or change availability.", cta: "Close poll" }
+    : null;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
+      <AlertDialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmCopy?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmCopy?.body}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pending) void runAdmin(pending.action, pending.start, pending.end);
+                setPending(null);
+              }}
+            >
+              {confirmCopy?.cta}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <header className="mb-6 flex justify-end">
         <Button variant="outline" size="sm" onClick={() => copy(shareUrl, "Link copied")}>
           <Copy /> Copy share link
