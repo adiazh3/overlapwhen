@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useHistory } from "@/hooks/use-history";
 import { exportCode, importCode, removePoll } from "@/lib/poll-history";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -81,18 +80,20 @@ function HistoryPage() {
           <option value="expiring">Expiring soon</option>
         </select>
       </div>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         {(["all", "creator", "participant"] as Filter[]).map((f) => (
-          <button
+          <Button
             key={f}
+            type="button"
+            size="sm"
+            decoration="none"
+            aria-pressed={filter === f}
+            variant={filter === f ? "default" : "outline"}
             onClick={() => setFilter(f)}
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs",
-              filter === f ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
-            )}
+            className="rounded-full"
           >
             {f === "all" ? "All" : f === "creator" ? "Created by me" : "Answered"}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -125,7 +126,7 @@ function HistoryPage() {
                     <span>Opened {new Date(h.lastVisitedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => copy(url, "Link copied")}>
                     <Copy /> Copy link
                   </Button>
@@ -158,13 +159,14 @@ function HistoryPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Copy your backup code and paste it on your other device. It includes organizer access, so keep it private.
         </p>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <Button variant="secondary" className="text-secondary-foreground" disabled={list.length === 0} onClick={() => copy(exportCode(), "Backup code copied")}>
+        <div className="mt-3 flex flex-col gap-2">
+          <Button variant="secondary" className="self-start" disabled={list.length === 0} onClick={() => copy(exportCode(), "Backup code copied")}>
             Copy backup code
           </Button>
           <Input className="bg-card text-foreground" placeholder="Paste a backup code" value={code} onChange={(e) => setCode(e.target.value)} />
           <Button
             variant="secondary"
+            className="self-start"
             disabled={!code.trim()}
             onClick={() => {
               try {

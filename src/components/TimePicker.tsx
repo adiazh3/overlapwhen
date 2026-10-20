@@ -30,7 +30,7 @@ export function TimePicker({ id, label, value, onChange, increment, includeMidni
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button id={id} type="button" variant="outline" className="h-10 w-full justify-between bg-card px-3" aria-label={`${label}: ${timeLabel(value)}`}>
+        <Button id={id} type="button" decoration="none" variant="outline" className="h-10 w-full justify-between bg-card px-3" aria-label={`${label}: ${timeLabel(value)}`}>
           <span className="flex items-center gap-2"><Clock className="text-muted-foreground" />{timeLabel(value)}</span>
           <ChevronDown className="text-muted-foreground" />
         </Button>
