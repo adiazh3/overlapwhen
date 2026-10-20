@@ -13,9 +13,9 @@ export function TutorialHelp() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="How it works"
-        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="eyebrow inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <CircleHelp className="size-4" />
+        <CircleHelp className="size-3.5" />
         <span className="hidden sm:inline">How it works</span>
       </button>
 
