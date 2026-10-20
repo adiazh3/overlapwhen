@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
 import { PollResults } from "@/components/PollResults";
 import { votePercentage } from "@/lib/poll-results";
-import { adminUpdate, checkName, getEventData, saveResponse, type ResponseRow } from "@/lib/events.functions";
+import { adminUpdate, checkName, getEventData, saveResponse, type LockEntry, type ResponseRow } from "@/lib/events.functions";
 import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, topTimes } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 import { recordPoll } from "@/lib/poll-history";
@@ -261,6 +261,7 @@ function EventPage() {
       {finalStart != null && finalEnd != null && (
         <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} />
       )}
+      {(ev.lock_history?.length ?? 0) > 0 && <LockHistory entries={ev.lock_history ?? []} tz={tz} />}
       {ev.closed && finalStart == null && (
         <div className="mb-6 flex items-center justify-between rounded-xl border bg-muted p-4 text-sm">
           <span className="flex items-center gap-2"><Lock className="size-4" /> The organizer closed this poll.</span>
@@ -555,6 +556,29 @@ function FinalCard({ id, title, description, start, end, tz, onReopen, names }: 
           Reopen poll
         </Button>
       </div>
+    </section>
+  );
+}
+
+function LockHistory({ entries, tz }: { entries: LockEntry[]; tz: string }) {
+  const at = (iso: string) =>
+    new Intl.DateTimeFormat(undefined, { timeZone: tz, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+  const toMin = (iso: string) => Math.round(Date.parse(iso) / 60000);
+  return (
+    <section aria-labelledby="lock-history" className="mb-8 rounded-lg border bg-card p-5">
+      <h2 id="lock-history" className="eyebrow mb-3">Lock-in history</h2>
+      <ol className="divide-y">
+        {[...entries].reverse().map((e, i) => (
+          <li key={e.at + i} className="flex flex-col gap-1 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-medium">
+              <Lock className="mr-1.5 inline size-3.5 align-[-2px]" aria-hidden="true" />
+              {fmtRange(toMin(e.start), toMin(e.end), tz)}
+              {i === 0 && <span className="ml-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Current</span>}
+            </span>
+            <time dateTime={e.at} className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Locked {at(e.at)}</time>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

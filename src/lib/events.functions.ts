@@ -204,7 +204,8 @@ export const adminUpdate = createServerFn({ method: "POST" })
       if (data.start == null || data.end == null || data.end <= data.start) throw new Error("Pick a time");
       const final_start = new Date(data.start * 60000).toISOString();
       const final_end = new Date(data.end * 60000).toISOString();
-      const prev = Array.isArray(ev.lock_history) ? ev.lock_history : [];
+      const raw = (ev as { lock_history?: unknown }).lock_history;
+      const prev = Array.isArray(raw) ? raw : [];
       const entry: LockEntry = { at: new Date().toISOString(), start: final_start, end: final_end };
       patch = { closed: true, final_start, final_end, lock_history: [...prev, entry].slice(-50) as Json };
     } else if (data.action === "close") patch = { closed: true };
