@@ -16,10 +16,10 @@ export function TimePicker({ id, label, value, onChange, increment, includeMidni
   return (
     <Select value={String(value)} onValueChange={(selected) => onChange(Number(selected))}>
       <SelectTrigger id={id} className="min-h-11 w-full bg-card" aria-label={`${label}: ${timeLabel(value)}`}>
-        <span className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <Clock aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
           <SelectValue />
-        </span>
+        </div>
       </SelectTrigger>
       <SelectContent position="popper" className="max-h-64">
         {options.map((minute) => (
