@@ -6,3 +6,4 @@
 - [x] Add availability result charts with participant counts and percentages.
 - [x] Test vote calculations and verify saved results on desktop and mobile.
 - [x] Fix calendar containment and verify October 2026 and six-week months on mobile and desktop without scrollbars.- [x] Require 4-digit PIN from the first respondent; lock/reopen open to all, close-early organizer-only
+- [x] Lock-in history on poll page + phone/desktop QA
