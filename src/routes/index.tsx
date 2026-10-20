@@ -3,7 +3,7 @@ import { useHistory } from "@/hooks/use-history";
 import { recordPoll } from "@/lib/poll-history";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { CalendarClock, Loader2, Users, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarClock, Loader2, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,9 +97,23 @@ function Index() {
         <p className="eyebrow">Group scheduling — No accounts</p>
         <h1 className="display-xl mt-5 max-w-4xl">Find the time that works. Skip the group chat.</h1>
         <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
-          <p className="max-w-md text-muted-foreground">
-            Create a poll in seconds, share the link, and everyone paints when they're free.
-          </p>
+          <div className="max-w-md">
+            <p className="text-muted-foreground">
+              Create a poll in seconds, share the link, and everyone paints when they're free.
+            </p>
+            <Button
+              type="button"
+              size="lg"
+              className="group mt-6 rounded-full px-7"
+              onClick={() => {
+                document.getElementById("create-poll")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                setTimeout(() => document.getElementById("title")?.focus({ preventScroll: true }), 400);
+              }}
+            >
+              Create a poll
+              <ArrowRight className="transition-transform group-hover:translate-x-1" />
+            </Button>
+          </div>
           <div className="flex gap-px" aria-hidden>
             {[0.06, 0.15, 0.3, 0.5, 0.75, 1].map((l) => (
               <div key={l} className="heat-cell h-8 w-8 md:w-12" style={{ ["--level" as string]: l }} />
@@ -151,7 +165,7 @@ function Index() {
           )}
         </section>
 
-        <form onSubmit={submit} className="space-y-5 rounded-lg border bg-card p-6 shadow-soft md:p-8">
+        <form id="create-poll" onSubmit={submit} className="scroll-mt-20 space-y-5 rounded-lg border bg-card p-6 shadow-soft md:p-8">
           <div className="space-y-2">
             <Label htmlFor="title">What's the plan?</Label>
             <Input id="title" autoFocus placeholder="Team dinner, D&D night…" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
