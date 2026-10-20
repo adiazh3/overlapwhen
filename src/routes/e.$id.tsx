@@ -236,7 +236,7 @@ function EventPage() {
                 setTzPick(e.target.value);
                 localStorage.setItem(`overlap:tz:${id}`, e.target.value);
               }}
-              className="h-7 max-w-44 rounded-md border border-input bg-card px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-7 w-auto max-w-full rounded-md border border-input bg-card px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
             >
               {tzOptions.map((z) => (
                 <option key={z} value={z}>
