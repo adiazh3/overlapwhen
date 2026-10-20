@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   CalendarCheck,
   Check,
+  ChevronDown,
   Copy,
   Download,
   Globe,
@@ -207,6 +208,8 @@ function EventPage() {
     toast.success(msg);
   };
 
+  const tzLabel = `${tz.replace(/_/g, " ")}${tz === viewerTz ? " (you)" : tz === ev?.timezone ? " (organizer)" : ""}`;
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
       <header className="mb-6 flex justify-end">
@@ -229,21 +232,28 @@ function EventPage() {
           <span className="flex items-center gap-1.5">
             <Globe className="size-3" />
             <label htmlFor="tzpick" className="sr-only">Show times in timezone</label>
-            <select
-              id="tzpick"
-              value={tz}
-              onChange={(e) => {
-                setTzPick(e.target.value);
-                localStorage.setItem(`overlap:tz:${id}`, e.target.value);
-              }}
-              className="h-7 w-auto max-w-full rounded-md border border-input bg-card px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {tzOptions.map((z) => (
-                <option key={z} value={z}>
-                  {z.replace(/_/g, " ")}{z === viewerTz ? " (you)" : z === ev.timezone ? " (organizer)" : ""}
-                </option>
-              ))}
-            </select>
+            <span className="relative inline-grid">
+              <span aria-hidden="true" className="invisible col-start-1 row-start-1 whitespace-nowrap px-1.5 py-1.5 text-xs">
+                {tzLabel}
+                <span className="inline-block w-8" />
+              </span>
+              <select
+                id="tzpick"
+                value={tz}
+                onChange={(e) => {
+                  setTzPick(e.target.value);
+                  localStorage.setItem(`overlap:tz:${id}`, e.target.value);
+                }}
+                className="absolute inset-0 h-full w-full min-w-0 appearance-none rounded-md border border-input bg-card px-1.5 pr-8 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {tzOptions.map((z) => (
+                  <option key={z} value={z}>
+                    {z.replace(/_/g, " ")}{z === viewerTz ? " (you)" : z === ev.timezone ? " (organizer)" : ""}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-2 top-1/2 size-3 -translate-y-1/2 opacity-70" />
+            </span>
           </span>
         </div>
       </div>
