@@ -205,9 +205,9 @@ function Index() {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Label>Time increments</Label>
-            <div className="flex gap-1 rounded-md bg-muted p-1" role="group" aria-label="Time increments">
+            <div className="flex gap-1 rounded-full bg-muted p-1" role="group" aria-label="Time increments">
               {([15, 60] as const).map((increment) => (
-                <Button key={increment} type="button" size="sm" variant={timeIncrement === increment ? "outline" : "ghost"}
+                <Button key={increment} type="button" size="sm" className="rounded-full" variant={timeIncrement === increment ? "outline" : "ghost"}
                   aria-pressed={timeIncrement === increment} onClick={() => {
                     setTimeIncrement(increment);
                     if (increment === 60) {
@@ -232,7 +232,7 @@ function Index() {
           </div>
           <div className="space-y-2">
             <Label>Slot size</Label>
-            <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
+            <div className="grid grid-cols-4 gap-1 rounded-full bg-muted p-1">
               {([15, 30, 45, 60] as const).map((s) => (
                 <Button
                   type="button"
@@ -242,7 +242,7 @@ function Index() {
                   variant={slot === s ? "secondary" : "ghost"}
                   aria-pressed={slot === s}
                   onClick={() => setSlot(s)}
-                  className={`rounded-md py-1.5 text-sm font-medium text-foreground transition ${slot === s ? "bg-card shadow-soft" : ""}`}
+                  className={`rounded-full py-1.5 text-sm font-medium text-foreground transition ${slot === s ? "bg-card shadow-soft" : ""}`}
                 >
                   {s} min
                 </Button>
