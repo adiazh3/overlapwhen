@@ -101,18 +101,29 @@ function Index() {
             <p className="text-muted-foreground">
               Create a poll in seconds, share the link, and everyone paints when they're free.
             </p>
-            <Button
-              type="button"
-              size="lg"
-              className="group mt-6 rounded-full px-7"
-              onClick={() => {
-                document.getElementById("create-poll")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                setTimeout(() => document.getElementById("title")?.focus({ preventScroll: true }), 400);
-              }}
-            >
-              Create a poll
-              <ArrowRight className="transition-transform group-hover:translate-x-1" />
-            </Button>
+            <div className="mt-7 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                className="group inline-flex h-12 items-center gap-3 rounded-full border border-foreground bg-foreground pl-6 pr-2 font-mono text-xs uppercase tracking-[0.14em] text-background transition-colors duration-300 hover:bg-transparent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                onClick={() => {
+                  document.getElementById("create-poll")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  setTimeout(() => document.getElementById("title")?.focus({ preventScroll: true }), 400);
+                }}
+              >
+                <span className="opacity-60">01 /</span>
+                <span>Start a poll</span>
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-background text-foreground transition-colors duration-300 group-hover:bg-foreground group-hover:text-background">
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                </span>
+              </button>
+              <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-highlight opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-highlight" />
+                </span>
+                15-sec setup · No sign-up
+              </span>
+            </div>
           </div>
           <div className="flex gap-px" aria-hidden>
             {[0.06, 0.15, 0.3, 0.5, 0.75, 1].map((l) => (
