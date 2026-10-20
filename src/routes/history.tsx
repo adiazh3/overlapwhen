@@ -159,7 +159,7 @@ function HistoryPage() {
           Copy your backup code and paste it on your other device. It includes organizer access, so keep it private.
         </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <Button variant="outline" disabled={list.length === 0} onClick={() => copy(exportCode(), "Backup code copied")}>
+          <Button variant="secondary" className="text-secondary-foreground" disabled={list.length === 0} onClick={() => copy(exportCode(), "Backup code copied")}>
             Copy backup code
           </Button>
           <Input className="bg-card text-foreground" placeholder="Paste a backup code" value={code} onChange={(e) => setCode(e.target.value)} />
