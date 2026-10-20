@@ -168,7 +168,7 @@ function Index() {
         <form id="create-poll" onSubmit={submit} className="scroll-mt-20 space-y-5 rounded-lg border bg-card p-6 shadow-soft md:p-8">
           <div className="space-y-2">
             <Label htmlFor="title">What's the plan?</Label>
-            <Input id="title" autoFocus placeholder="Team dinner, D&D night…" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
+            <Input id="title" placeholder="Team dinner, D&D night…" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="desc">
