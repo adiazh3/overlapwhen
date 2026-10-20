@@ -27,7 +27,7 @@ function PrivacyPage() {
           <li>Poll details you enter: title, optional description, dates, time window, slot size and timezone.</li>
           <li>Participant display names and the time slots they mark as available.</li>
           <li>An optional 4-digit PIN, stored only in scrambled (hashed) form, never as the PIN itself.</li>
-          <li>A private organizer code that lets the poll creator lock a time or close the poll.</li>
+          <li>A private organizer code that lets the poll creator close the poll early. Anyone with the poll link can lock in a time or reopen the poll.</li>
         </ul>
         <p>We don't ask for email addresses, phone numbers, or passwords.</p>
       </section>

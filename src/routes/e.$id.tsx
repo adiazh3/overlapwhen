@@ -193,9 +193,9 @@ function EventPage() {
   const daysLeft = now ? Math.max(0, Math.ceil((Date.parse(ev.expires_at) - now) / 86400000)) : null;
 
   async function doAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
-    if (!adminToken) return;
+    if (action === "close" && !adminToken) return;
     try {
-      await admin({ data: { event_id: id, token: adminToken, action, start, end } });
+      await admin({ data: { event_id: id, token: adminToken ?? undefined, action, start, end } });
       qc.invalidateQueries({ queryKey: ["event", id] });
       toast.success(action === "lock" ? "Final time locked in" : action === "close" ? "Poll closed" : "Poll reopened");
     } catch (e) {
@@ -259,12 +259,12 @@ function EventPage() {
       </div>
 
       {finalStart != null && finalEnd != null && (
-        <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} isAdmin={isAdmin} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} />
+        <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} />
       )}
       {ev.closed && finalStart == null && (
         <div className="mb-6 flex items-center justify-between rounded-xl border bg-muted p-4 text-sm">
           <span className="flex items-center gap-2"><Lock className="size-4" /> The organizer closed this poll.</span>
-          {isAdmin && <Button size="sm" variant="outline" onClick={() => doAdmin("reopen")}>Reopen</Button>}
+          <Button size="sm" variant="outline" onClick={() => doAdmin("reopen")}>Reopen</Button>
         </div>
       )}
 
@@ -343,7 +343,7 @@ function EventPage() {
                   <PeopleList label="Available" names={activeNames} ok />
                   <PeopleList label="Missing" names={activeMissing} />
                 </div>
-                {isAdmin && !ev.closed && (
+                {!ev.closed && (
                   <Button size="sm" variant="outline" className="mt-2" onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
                     <CalendarCheck /> Lock in this slot
                   </Button>
@@ -368,7 +368,7 @@ function EventPage() {
                 <div className="mt-1 text-xs text-muted-foreground">
                   {r.count}/{responses.length} free · {votePercentage(r.count, responses.length)}% · {r.names.join(", ")}
                 </div>
-                {isAdmin && !ev.closed && (
+                {!ev.closed && (
                   <Button size="sm" variant={i === 0 ? "default" : "outline"} className="mt-3" onClick={() => doAdmin("lock", r.start, r.end)}>
                     <CalendarCheck /> Lock in
                   </Button>
@@ -398,7 +398,7 @@ function EventPage() {
           </div>
           {isAdmin && !ev.closed && (
             <div className="rounded-2xl border border-dashed p-4 text-xs text-muted-foreground">
-              <p className="mb-2"><strong className="text-foreground">You're the organizer.</strong> Lock in a time from the recommendations or the heatmap.</p>
+              <p className="mb-2"><strong className="text-foreground">You're the organizer.</strong> Anyone with the link can lock in or reopen a time. Only you can close the poll early.</p>
               <Button size="sm" variant="outline" onClick={() => doAdmin("close")}>
                 <Lock /> Close poll early
               </Button>
@@ -524,7 +524,7 @@ function Reminder({ id, title, shareUrl, responded }: { id: string; title: strin
   );
 }
 
-function FinalCard({ id, title, description, start, end, tz, isAdmin, onReopen, names }: { id: string; title: string; description: string; start: number; end: number; tz: string; isAdmin: boolean; onReopen: () => void; names: string[] }) {
+function FinalCard({ id, title, description, start, end, tz, onReopen, names }: { id: string; title: string; description: string; start: number; end: number; tz: string; onReopen: () => void; names: string[] }) {
   const details = description || `Scheduled with Overlap`;
   const downloadIcs = () => {
     const blob = new Blob([buildIcs(id, title, details, start, end)], { type: "text/calendar" });
@@ -549,11 +549,9 @@ function FinalCard({ id, title, description, start, end, tz, isAdmin, onReopen, 
         <Button size="sm" variant="secondary" onClick={downloadIcs}>
           <Download /> Outlook / Apple (.ics)
         </Button>
-        {isAdmin && (
-          <Button size="sm" variant="secondary" onClick={onReopen}>
-            Reopen poll
-          </Button>
-        )}
+        <Button size="sm" variant="secondary" onClick={onReopen}>
+          Reopen poll
+        </Button>
       </div>
     </section>
   );

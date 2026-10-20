@@ -23,7 +23,7 @@ function TermsPage() {
       </section>
       <section>
         <h2>The service</h2>
-        <p>Overlap is a free tool for creating availability polls and finding times that work for a group. No account is required.</p>
+        <p>Overlap is a free tool for creating availability polls and finding times that work for a group. No account is required. Anyone with a poll link can lock in a proposed time or reopen the poll; closing it early remains organizer-only.</p>
       </section>
       <section>
         <h2>Your responsibilities</h2>
