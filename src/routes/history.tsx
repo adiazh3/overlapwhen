@@ -107,7 +107,22 @@ function HistoryPage() {
         </select>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {(["all", "creator", "participant"] as Filter[]).map((f) => (
+        {(["all", "active", "concluded"] as StatusFilter[]).map((f) => (
+          <Button
+            key={f}
+            type="button"
+            size="sm"
+            decoration="none"
+            aria-pressed={statusFilter === f}
+            variant={statusFilter === f ? "default" : "outline"}
+            onClick={() => setStatusFilter(f)}
+            className="rounded-full"
+          >
+            {f === "all" ? "All" : f === "active" ? "Active" : "Concluded"}
+          </Button>
+        ))}
+        <span className="mx-1 hidden w-px self-stretch bg-border sm:block" aria-hidden />
+        {(["creator", "participant"] as Filter[]).map((f) => (
           <Button
             key={f}
             type="button"
@@ -115,10 +130,10 @@ function HistoryPage() {
             decoration="none"
             aria-pressed={filter === f}
             variant={filter === f ? "default" : "outline"}
-            onClick={() => setFilter(f)}
+            onClick={() => setFilter((prev) => (prev === f ? "all" : f))}
             className="rounded-full"
           >
-            {f === "all" ? "All" : f === "creator" ? "Created by me" : "Answered"}
+            {f === "creator" ? "Created by me" : "Answered"}
           </Button>
         ))}
       </div>
