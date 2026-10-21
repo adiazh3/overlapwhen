@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useHistory } from "@/hooks/use-history";
 import { exportCode, importCode, removePoll, type HistoryEntry, type PollStatus } from "@/lib/poll-history";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
