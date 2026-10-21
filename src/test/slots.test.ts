@@ -40,7 +40,7 @@ describe("scheduling rules", () => {
     const all = [0, 60, 120, 180];
     const ranked = rankTimes(grid, 60, [{ name: "A", slots: all }, { name: "B", slots: all }]);
     expect(ranked.map((r) => [r.rank, r.start])).toEqual([[1, 60], [2, 120], [3, 0], [4, 180]]);
-    expect(ranked[0].tiedWith).toBe(3);
+    expect(ranked[0]?.tiedWith).toBe(3);
   });
 
   it("ranks more attendees above more buffer", () => {
