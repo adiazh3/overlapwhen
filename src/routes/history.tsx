@@ -114,8 +114,8 @@ function HistoryPage() {
           const url = `${window.location.origin}/e/${h.id}`;
           return (
             <li key={h.id} className="border-b py-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 flex-1">
                   <Link to="/e/$id" params={{ id: h.id }} className="font-display text-lg font-medium hover:text-highlight">
                     {h.title}
                   </Link>
@@ -126,7 +126,7 @@ function HistoryPage() {
                     <span>Opened {new Date(h.lastVisitedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => copy(url, "Link copied")}>
                     <Copy /> Copy link
                   </Button>
