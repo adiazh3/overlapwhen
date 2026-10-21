@@ -9,3 +9,5 @@
 - [x] Require 4-digit PIN from the first respondent; lock/reopen open to all, close-early organizer-only
 - [x] Lock-in history on poll page + phone/desktop QA
 - [x] Let the first respondent close the poll early from any browser via name + PIN verification
+- [x] My polls: status badges, muted concluded polls, Active/Concluded filter, active-first sorting
+- [x] Poll page: removed Vote Results chart; Top times now show tie badges and missing attendees
