@@ -38,8 +38,18 @@ import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, rankTimes 
 import { cn } from "@/lib/utils";
 import { recordPoll } from "@/lib/poll-history";
 
+// Safari ("Load failed") and Firefox ("NetworkError") reject in-flight fetches
+// when a page reloads or the connection blips; retry those instead of erroring.
+const isNetworkError = (e: unknown) =>
+  e instanceof TypeError || (e instanceof Error && /load failed|networkerror|failed to fetch|aborted/i.test(e.message));
+
 const eventQuery = (id: string) =>
-  queryOptions({ queryKey: ["event", id], queryFn: () => getEventData({ data: { id } }) });
+  queryOptions({
+    queryKey: ["event", id],
+    queryFn: () => getEventData({ data: { id } }),
+    retry: (count, e) => count < 3 && isNetworkError(e),
+    retryDelay: (n) => 400 * (n + 1),
+  });
 
 export const Route = createFileRoute("/e/$id")({
   validateSearch: z.object({ admin: z.string().optional() }),
