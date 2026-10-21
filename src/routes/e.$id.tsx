@@ -32,7 +32,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
-import { PollResults } from "@/components/PollResults";
 import { votePercentage } from "@/lib/poll-results";
 import { adminUpdate, checkName, getEventData, saveResponse, type LockEntry, type ResponseRow } from "@/lib/events.functions";
 import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, topTimes } from "@/lib/slots";
@@ -129,8 +128,9 @@ function EventPage() {
   // Remember this poll in the device's "My polls" list.
   useEffect(() => {
     if (!ev?.title) return;
-    recordPoll({ id, title: ev.title, expiresAt: ev.expires_at, name: me?.name, role: adminToken ? "creator" : "participant" });
-  }, [id, ev?.title, ev?.expires_at, me?.name, adminToken]);
+    const status = isExpired(ev.expires_at) ? "expired" : ev.final_start ? "locked" : ev.closed ? "closed" : "active";
+    recordPoll({ id, title: ev.title, expiresAt: ev.expires_at, name: me?.name, role: adminToken ? "creator" : "participant", status });
+  }, [id, ev?.title, ev?.expires_at, ev?.final_start, ev?.closed, me?.name, adminToken]);
 
   const shape = useMemo(() => (ev ? buildGrid(ev) : null), [ev]);
   const tz = tzPick ?? viewerTz ?? ev?.timezone ?? "UTC";
@@ -395,7 +395,6 @@ function EventPage() {
               </>
             )}
           </div>
-          <PollResults grid={shape.grid} responses={responses} slotMinutes={ev.slot_minutes} tz={tz} />
         </section>
       </div>
 
