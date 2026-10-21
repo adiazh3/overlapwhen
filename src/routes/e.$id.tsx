@@ -47,6 +47,8 @@ const eventQuery = (id: string) =>
   queryOptions({
     queryKey: ["event", id],
     queryFn: () => getEventData({ data: { id } }),
+    // Fresh enough to skip a duplicate fetch right after the loader; the 5s refresh keeps it live.
+    staleTime: 3000,
     retry: (count, e) => count < 3 && isNetworkError(e),
     retryDelay: (n) => 400 * (n + 1),
   });
@@ -69,6 +71,9 @@ export const Route = createFileRoute("/e/$id")({
       ],
     };
   },
+  pendingMs: 150,
+  pendingComponent: PollSkeleton,
+  errorComponent: PollLoadError,
   component: EventPage,
 });
 
