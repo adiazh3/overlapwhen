@@ -151,19 +151,24 @@ function HistoryPage() {
           </li>
         )}
         {shown.map((h) => {
+          const status = statusOf(h);
+          const concluded = status !== "active";
           const days = h.expiresAt ? Math.ceil((Date.parse(h.expiresAt) - Date.now()) / 86400000) : null;
           const url = `${window.location.origin}/e/${h.id}`;
           return (
-            <li key={h.id} className="border-b py-5">
+            <li key={h.id} className={cn("border-b py-5", concluded && "opacity-65")}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <Link to="/e/$id" params={{ id: h.id }} className="font-display text-lg font-medium hover:text-highlight">
-                    {h.title}
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Link to="/e/$id" params={{ id: h.id }} className="font-display text-lg font-medium hover:text-highlight">
+                      {h.title}
+                    </Link>
+                    <StatusBadge status={status} />
+                  </div>
                   <div className="eyebrow mt-2 flex flex-wrap gap-x-3 gap-y-1">
                     <span className="text-foreground">{h.role === "creator" ? "Organizer" : "Participant"}</span>
                     {h.name && <span>Answered as {h.name}</span>}
-                    {days != null && <span>{days > 0 ? `Expires in ${days} day${days === 1 ? "" : "s"}` : "Expired"}</span>}
+                    {days != null && status !== "expired" && <span>{days > 0 ? `Expires in ${days} day${days === 1 ? "" : "s"}` : "Expired"}</span>}
                     <span>Opened {new Date(h.lastVisitedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
