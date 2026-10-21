@@ -34,7 +34,7 @@ import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
 import { votePercentage } from "@/lib/poll-results";
 import { adminUpdate, checkName, getEventData, saveResponse, type LockEntry, type ResponseRow } from "@/lib/events.functions";
-import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, topTimes } from "@/lib/slots";
+import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, rankTimes } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 import { recordPoll } from "@/lib/poll-history";
 
@@ -152,10 +152,12 @@ function EventPage() {
     return m;
   }, [responses]);
 
-  const recs = useMemo(
-    () => (shape && ev ? topTimes(shape.grid, ev.slot_minutes, responses, 3) : []),
+  const ranked = useMemo(
+    () => (shape && ev ? rankTimes(shape.grid, ev.slot_minutes, responses) : []),
     [shape, ev, responses],
   );
+  const recs = ranked.slice(0, 3);
+  const [showMore, setShowMore] = useState(false);
 
   const persist = useCallback(
     async (slots: Set<number>) => {
