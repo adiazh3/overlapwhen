@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useHistory } from "@/hooks/use-history";
-import { exportCode, importCode, removePoll } from "@/lib/poll-history";
+import { exportCode, importCode, removePoll, type HistoryEntry, type PollStatus } from "@/lib/poll-history";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -23,12 +23,36 @@ export const Route = createFileRoute("/history")({
 });
 
 type Filter = "all" | "creator" | "participant";
+type StatusFilter = "all" | "active" | "concluded";
 type Sort = "recent" | "newest" | "expiring";
+
+function statusOf(h: HistoryEntry): PollStatus {
+  if (h.expiresAt && Date.parse(h.expiresAt) <= Date.now()) return "expired";
+  return h.status ?? "active";
+}
+
+const STATUS_META: Record<PollStatus, { label: string; className: string }> = {
+  active: { label: "Active", className: "border-border text-foreground" },
+  locked: { label: "Locked in", className: "border-primary bg-primary text-primary-foreground" },
+  closed: { label: "Closed", className: "border-border bg-muted text-muted-foreground" },
+  expired: { label: "Expired", className: "border-border text-muted-foreground" },
+};
+
+function StatusBadge({ status }: { status: PollStatus }) {
+  const meta = STATUS_META[status];
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${meta.className}`}>
+      {status === "active" && <span className="size-1.5 animate-pulse rounded-full bg-highlight" aria-hidden />}
+      {meta.label}
+    </span>
+  );
+}
 
 function HistoryPage() {
   const list = useHistory();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<Sort>("recent");
   const [code, setCode] = useState("");
 
@@ -37,13 +61,15 @@ function HistoryPage() {
     const out = list.filter(
       (h) =>
         (filter === "all" || h.role === filter) &&
+        (statusFilter === "all" || (statusFilter === "active" ? statusOf(h) === "active" : statusOf(h) !== "active")) &&
         (!s || h.title.toLowerCase().includes(s) || (h.name ?? "").toLowerCase().includes(s)),
     );
     const exp = (h: (typeof out)[number]) => (h.expiresAt ? Date.parse(h.expiresAt) : Infinity);
-    return out.sort((a, b) =>
-      sort === "recent" ? b.lastVisitedAt - a.lastVisitedAt : sort === "newest" ? b.createdAt - a.createdAt : exp(a) - exp(b),
-    );
-  }, [list, q, filter, sort]);
+    const bySort = (a: (typeof out)[number], b: (typeof out)[number]) =>
+      sort === "recent" ? b.lastVisitedAt - a.lastVisitedAt : sort === "newest" ? b.createdAt - a.createdAt : exp(a) - exp(b);
+    // Active polls always float above concluded ones.
+    return [...out.filter((h) => statusOf(h) === "active").sort(bySort), ...out.filter((h) => statusOf(h) !== "active").sort(bySort)];
+  }, [list, q, filter, statusFilter, sort]);
 
   const copy = async (text: string, msg: string) => {
     await navigator.clipboard.writeText(text);
