@@ -34,7 +34,7 @@ import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
 import { votePercentage } from "@/lib/poll-results";
 import { adminUpdate, checkName, getEventData, saveResponse, type LockEntry, type ResponseRow } from "@/lib/events.functions";
-import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, topTimes } from "@/lib/slots";
+import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, rankTimes } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 import { recordPoll } from "@/lib/poll-history";
 
@@ -152,10 +152,12 @@ function EventPage() {
     return m;
   }, [responses]);
 
-  const recs = useMemo(
-    () => (shape && ev ? topTimes(shape.grid, ev.slot_minutes, responses, 3) : []),
+  const ranked = useMemo(
+    () => (shape && ev ? rankTimes(shape.grid, ev.slot_minutes, responses) : []),
     [shape, ev, responses],
   );
+  const recs = ranked.slice(0, 3);
+  const [showMore, setShowMore] = useState(false);
 
   const persist = useCallback(
     async (slots: Set<number>) => {
@@ -401,23 +403,26 @@ function EventPage() {
       {recs.length > 0 && (
         <section className="mt-10 border-t pt-6">
           <p className="eyebrow mb-1">04 — Recommended</p>
-          <h2 className="mb-4 flex items-center gap-2 text-2xl"><Trophy className="size-5" /> Top times</h2>
+          <h2 className="mb-1 flex items-center gap-2 text-2xl"><Trophy className="size-5" /> Top times</h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            {ev.closed ? "Voting is closed. Reopen the poll to change the final time." : "Ranked by who can attend, then by open time around each slot, then earliest."}
+          </p>
           <div className="grid border-t md:grid-cols-3 md:border-t-0">
-            {recs.map((r, i) => {
-              const rank = recs.filter((o) => o.count > r.count).length + 1;
-              const tied = recs.some((o) => o !== r && o.count === r.count);
+            {recs.map((r) => {
               const missing = responses.filter((res) => !r.names.includes(res.name)).map((res) => res.name);
+              const best = r.rank === 1;
               return (
-                <div key={i} className={cn("flex gap-4 border-b py-4 md:border-b-0 md:border-l md:px-5 md:first:border-l-0 md:first:pl-0")}>
-                  <span className={cn("font-display text-4xl font-medium leading-none tabular-nums", rank === 1 ? "text-highlight" : "text-muted-foreground")}>{rank}</span>
+                <div key={r.start} className={cn("flex gap-4 border-b py-4 md:border-b-0 md:border-l md:px-5 md:first:border-l-0 md:first:pl-0", best && "md:pr-5")}>
+                  <span className={cn("font-display text-4xl font-medium leading-none tabular-nums", best ? "text-highlight" : "text-muted-foreground")}>#{r.rank}</span>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold">{fmtRange(r.start, r.end, tz)}</span>
-                      {tied && <span className="rounded-full border border-border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Tied #{rank}</span>}
+                      {best && <span className="rounded-full bg-primary px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-primary-foreground">Best pick</span>}
                     </div>
                     <div className="mt-1 text-xs tabular-nums text-muted-foreground">
-                      {r.count}/{responses.length} free · {votePercentage(r.count, responses.length)}%
+                      {r.count} of {responses.length} available · {votePercentage(r.count, responses.length)}%
                     </div>
+                    {r.reason && <p className="mt-1 text-[11px] italic text-muted-foreground">{r.reason}</p>}
                     <div className="mt-2 space-y-1 text-xs">
                       <p className="flex items-center gap-1.5"><Check className="size-3 shrink-0 text-success" /> {r.names.join(", ")}</p>
                       {missing.length > 0 ? (
@@ -427,7 +432,7 @@ function EventPage() {
                       )}
                     </div>
                     {!ev.closed && (
-                      <Button size="sm" variant={rank === 1 ? "default" : "outline"} className="mt-3" onClick={() => doAdmin("lock", r.start, r.end)}>
+                      <Button size="sm" variant={best ? "default" : "outline"} className="mt-3" onClick={() => doAdmin("lock", r.start, r.end)}>
                         <CalendarCheck /> Lock in
                       </Button>
                     )}
@@ -436,6 +441,30 @@ function EventPage() {
               );
             })}
           </div>
+          {ranked.length > 3 && (
+            <div className="mt-4">
+              <Button size="sm" variant="outline" aria-expanded={showMore} onClick={() => setShowMore((v) => !v)}>
+                {showMore ? "Hide more times" : `View more times (${ranked.length - 3})`}
+              </Button>
+              {showMore && (
+                <ol className="mt-3 divide-y border-y">
+                  {ranked.slice(3).map((r) => (
+                    <li key={r.start} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 text-sm">
+                      <span className="w-8 font-mono text-xs tabular-nums text-muted-foreground">#{r.rank}</span>
+                      <span className="min-w-0 flex-1 font-medium">{fmtRange(r.start, r.end, tz)}</span>
+                      <span className="text-xs tabular-nums text-muted-foreground">{r.count}/{responses.length} · {votePercentage(r.count, responses.length)}%</span>
+                      <span className="hidden max-w-[14rem] truncate text-xs text-muted-foreground sm:inline" title={r.names.join(", ")}>{r.names.join(", ")}</span>
+                      {!ev.closed && (
+                        <Button size="sm" variant="ghost" decoration="none" onClick={() => doAdmin("lock", r.start, r.end)}>
+                          <CalendarCheck /> Lock in
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
         </section>
       )}
 

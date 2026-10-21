@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGrid, expiryFrom, isExpired, topTimes, zonedToEpochMinutes } from "@/lib/slots";
+import { buildGrid, expiryFrom, isExpired, rankTimes, topTimes, zonedToEpochMinutes } from "@/lib/slots";
 
 describe("scheduling rules", () => {
   it("poll links expire 21 days after creation", () => {
@@ -33,5 +33,19 @@ describe("scheduling rules", () => {
     const all = [0, 60, 120, 180];
     const recs = topTimes(grid, 60, [{ name: "A", slots: all }, { name: "B", slots: all }]);
     expect(recs.map((r) => [r.start, r.end])).toEqual([[0, 60], [60, 120], [120, 180]]);
+  });
+
+  it("breaks attendance ties with distinct ranks, preferring slots with open time around them", () => {
+    const grid = [[0, 60, 120, 180]];
+    const all = [0, 60, 120, 180];
+    const ranked = rankTimes(grid, 60, [{ name: "A", slots: all }, { name: "B", slots: all }]);
+    expect(ranked.map((r) => [r.rank, r.start])).toEqual([[1, 60], [2, 120], [3, 0], [4, 180]]);
+    expect(ranked[0]?.tiedWith).toBe(3);
+  });
+
+  it("ranks more attendees above more buffer", () => {
+    const grid = [[0, 60, 120]];
+    const ranked = rankTimes(grid, 60, [{ name: "A", slots: [0, 60, 120] }, { name: "B", slots: [120] }]);
+    expect(ranked[0]).toMatchObject({ start: 120, count: 2, rank: 1 });
   });
 });
