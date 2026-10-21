@@ -700,3 +700,32 @@ function Gone({ title, body }: { title: string; body: string }) {
     </main>
   );
 }
+
+function PollSkeleton() {
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10" aria-busy="true">
+      <span className="sr-only" role="status">Loading poll…</span>
+      <div className="animate-pulse space-y-4" aria-hidden="true">
+        <div className="h-3 w-32 rounded bg-muted" />
+        <div className="h-12 w-3/4 max-w-xl rounded bg-muted" />
+        <div className="h-3 w-48 rounded bg-muted" />
+        <div className="grid gap-6 pt-6 md:grid-cols-2">
+          <div className="h-80 rounded-lg bg-muted" />
+          <div className="h-80 rounded-lg bg-muted" />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function PollLoadError({ error }: { error: unknown }) {
+  const router = useRouter();
+  return (
+    <main className="mx-auto max-w-xl px-4 py-16 text-center">
+      <p className="eyebrow">Connection hiccup</p>
+      <h1 className="mt-3 text-3xl">We couldn't load this poll</h1>
+      <p className="mt-3 text-sm text-muted-foreground">{error instanceof Error ? error.message : "Please check your connection and try again."}</p>
+      <Button className="mt-6" onClick={() => void router.invalidate()}>Try again</Button>
+    </main>
+  );
+}
