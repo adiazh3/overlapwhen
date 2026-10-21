@@ -74,6 +74,51 @@ export function expiryFrom(createdMs: number): Date {
 }
 
 export type Recommendation = { start: number; end: number; count: number; names: string[] };
+export type RankedTime = Recommendation & {
+  rank: number;
+  /** Adjacent slots (0–2) where the same people are all still free. */
+  buffer: number;
+  /** How many other slots share this attendance count. */
+  tiedWith: number;
+  reason: string;
+};
+
+/**
+ * Rank every slot with at least one attendee, best to worst. Distinct ranks:
+ * most attendees, then most buffer (neighbouring slots where the same people
+ * are still free), then earliest.
+ */
+export function rankTimes(
+  grid: number[][],
+  slotMinutes: number,
+  responses: { name: string; slots: number[] }[],
+): RankedTime[] {
+  const sets = responses.map((r) => ({ name: r.name, set: new Set(r.slots.map(Number)) }));
+  const base: (Recommendation & { buffer: number })[] = [];
+  for (const col of grid) {
+    col.forEach((slot, i) => {
+      const who = sets.filter((s) => s.set.has(slot));
+      if (!who.length) return;
+      const allFree = (n: number | undefined) => n != null && who.every((s) => s.set.has(n));
+      const buffer = (allFree(col[i - 1]) ? 1 : 0) + (allFree(col[i + 1]) ? 1 : 0);
+      base.push({ start: slot, end: slot + slotMinutes, count: who.length, names: who.map((s) => s.name), buffer });
+    });
+  }
+  base.sort((a, b) => b.count - a.count || b.buffer - a.buffer || a.start - b.start);
+  const byCount = new Map<number, number>();
+  for (const b of base) byCount.set(b.count, (byCount.get(b.count) ?? 0) + 1);
+  return base.map((b, i) => {
+    const tiedWith = (byCount.get(b.count) ?? 1) - 1;
+    let reason = "";
+    if (tiedWith > 0) {
+      const prev = base[i - 1];
+      const sameAsPrev = prev && prev.count === b.count;
+      if (!sameAsPrev) reason = b.buffer > 0 ? `Tied on attendance with ${tiedWith} other time${tiedWith === 1 ? "" : "s"} · ranked higher for open time around it` : `Tied on attendance with ${tiedWith} other time${tiedWith === 1 ? "" : "s"} · earliest option`;
+      else reason = prev.buffer > b.buffer ? "Same attendance · less open time around it" : "Same attendance · later option";
+    }
+    return { ...b, rank: i + 1, tiedWith, reason };
+  });
+}
 
 /** Rank individual slots (poll's own slot length) by attendance, earliest first on ties; return top N. */
 export function topTimes(
