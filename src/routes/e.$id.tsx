@@ -32,7 +32,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
-import { PollResults } from "@/components/PollResults";
 import { votePercentage } from "@/lib/poll-results";
 import { adminUpdate, checkName, getEventData, saveResponse, type LockEntry, type ResponseRow } from "@/lib/events.functions";
 import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, topTimes } from "@/lib/slots";
@@ -129,8 +128,9 @@ function EventPage() {
   // Remember this poll in the device's "My polls" list.
   useEffect(() => {
     if (!ev?.title) return;
-    recordPoll({ id, title: ev.title, expiresAt: ev.expires_at, name: me?.name, role: adminToken ? "creator" : "participant" });
-  }, [id, ev?.title, ev?.expires_at, me?.name, adminToken]);
+    const status = isExpired(ev.expires_at) ? "expired" : ev.final_start ? "locked" : ev.closed ? "closed" : "active";
+    recordPoll({ id, title: ev.title, expiresAt: ev.expires_at, name: me?.name, role: adminToken ? "creator" : "participant", status });
+  }, [id, ev?.title, ev?.expires_at, ev?.final_start, ev?.closed, me?.name, adminToken]);
 
   const shape = useMemo(() => (ev ? buildGrid(ev) : null), [ev]);
   const tz = tzPick ?? viewerTz ?? ev?.timezone ?? "UTC";
@@ -395,7 +395,6 @@ function EventPage() {
               </>
             )}
           </div>
-          <PollResults grid={shape.grid} responses={responses} slotMinutes={ev.slot_minutes} tz={tz} />
         </section>
       </div>
 
@@ -404,22 +403,38 @@ function EventPage() {
           <p className="eyebrow mb-1">04 — Recommended</p>
           <h2 className="mb-4 flex items-center gap-2 text-2xl"><Trophy className="size-5" /> Top times</h2>
           <div className="grid border-t md:grid-cols-3 md:border-t-0">
-            {recs.map((r, i) => (
-              <div key={i} className={cn("flex gap-4 border-b py-4 md:border-b-0 md:border-l md:px-5 md:first:border-l-0 md:first:pl-0")}>
-                <span className={cn("font-display text-4xl font-medium leading-none tabular-nums", i === 0 ? "text-highlight" : "text-muted-foreground")}>{i + 1}</span>
-                <div className="min-w-0">
-                <div className="text-sm font-semibold">{fmtRange(r.start, r.end, tz)}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {r.count}/{responses.length} free · {votePercentage(r.count, responses.length)}% · {r.names.join(", ")}
+            {recs.map((r, i) => {
+              const rank = recs.filter((o) => o.count > r.count).length + 1;
+              const tied = recs.some((o) => o !== r && o.count === r.count);
+              const missing = responses.filter((res) => !r.names.includes(res.name)).map((res) => res.name);
+              return (
+                <div key={i} className={cn("flex gap-4 border-b py-4 md:border-b-0 md:border-l md:px-5 md:first:border-l-0 md:first:pl-0")}>
+                  <span className={cn("font-display text-4xl font-medium leading-none tabular-nums", rank === 1 ? "text-highlight" : "text-muted-foreground")}>{rank}</span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold">{fmtRange(r.start, r.end, tz)}</span>
+                      {tied && <span className="rounded-full border border-border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Tied #{rank}</span>}
+                    </div>
+                    <div className="mt-1 text-xs tabular-nums text-muted-foreground">
+                      {r.count}/{responses.length} free · {votePercentage(r.count, responses.length)}%
+                    </div>
+                    <div className="mt-2 space-y-1 text-xs">
+                      <p className="flex items-center gap-1.5"><Check className="size-3 shrink-0 text-success" /> {r.names.join(", ")}</p>
+                      {missing.length > 0 ? (
+                        <p className="flex items-center gap-1.5 text-muted-foreground"><X className="size-3 shrink-0" /> Missing: {missing.join(", ")}</p>
+                      ) : (
+                        <p className="flex items-center gap-1.5 text-muted-foreground"><Check className="size-3 shrink-0" /> Everyone's free</p>
+                      )}
+                    </div>
+                    {!ev.closed && (
+                      <Button size="sm" variant={rank === 1 ? "default" : "outline"} className="mt-3" onClick={() => doAdmin("lock", r.start, r.end)}>
+                        <CalendarCheck /> Lock in
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                {!ev.closed && (
-                  <Button size="sm" variant={i === 0 ? "default" : "outline"} className="mt-3" onClick={() => doAdmin("lock", r.start, r.end)}>
-                    <CalendarCheck /> Lock in
-                  </Button>
-                )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}

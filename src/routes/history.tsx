@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useHistory } from "@/hooks/use-history";
-import { exportCode, importCode, removePoll } from "@/lib/poll-history";
+import { exportCode, importCode, removePoll, type HistoryEntry, type PollStatus } from "@/lib/poll-history";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -23,12 +24,36 @@ export const Route = createFileRoute("/history")({
 });
 
 type Filter = "all" | "creator" | "participant";
+type StatusFilter = "all" | "active" | "concluded";
 type Sort = "recent" | "newest" | "expiring";
+
+function statusOf(h: HistoryEntry): PollStatus {
+  if (h.expiresAt && Date.parse(h.expiresAt) <= Date.now()) return "expired";
+  return h.status ?? "active";
+}
+
+const STATUS_META: Record<PollStatus, { label: string; className: string }> = {
+  active: { label: "Active", className: "border-border text-foreground" },
+  locked: { label: "Locked in", className: "border-primary bg-primary text-primary-foreground" },
+  closed: { label: "Closed", className: "border-border bg-muted text-muted-foreground" },
+  expired: { label: "Expired", className: "border-border text-muted-foreground" },
+};
+
+function StatusBadge({ status }: { status: PollStatus }) {
+  const meta = STATUS_META[status];
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${meta.className}`}>
+      {status === "active" && <span className="size-1.5 animate-pulse rounded-full bg-highlight" aria-hidden />}
+      {meta.label}
+    </span>
+  );
+}
 
 function HistoryPage() {
   const list = useHistory();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<Sort>("recent");
   const [code, setCode] = useState("");
 
@@ -37,13 +62,15 @@ function HistoryPage() {
     const out = list.filter(
       (h) =>
         (filter === "all" || h.role === filter) &&
+        (statusFilter === "all" || (statusFilter === "active" ? statusOf(h) === "active" : statusOf(h) !== "active")) &&
         (!s || h.title.toLowerCase().includes(s) || (h.name ?? "").toLowerCase().includes(s)),
     );
     const exp = (h: (typeof out)[number]) => (h.expiresAt ? Date.parse(h.expiresAt) : Infinity);
-    return out.sort((a, b) =>
-      sort === "recent" ? b.lastVisitedAt - a.lastVisitedAt : sort === "newest" ? b.createdAt - a.createdAt : exp(a) - exp(b),
-    );
-  }, [list, q, filter, sort]);
+    const bySort = (a: (typeof out)[number], b: (typeof out)[number]) =>
+      sort === "recent" ? b.lastVisitedAt - a.lastVisitedAt : sort === "newest" ? b.createdAt - a.createdAt : exp(a) - exp(b);
+    // Active polls always float above concluded ones.
+    return [...out.filter((h) => statusOf(h) === "active").sort(bySort), ...out.filter((h) => statusOf(h) !== "active").sort(bySort)];
+  }, [list, q, filter, statusFilter, sort]);
 
   const copy = async (text: string, msg: string) => {
     await navigator.clipboard.writeText(text);
@@ -81,7 +108,22 @@ function HistoryPage() {
         </select>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {(["all", "creator", "participant"] as Filter[]).map((f) => (
+        {(["all", "active", "concluded"] as StatusFilter[]).map((f) => (
+          <Button
+            key={f}
+            type="button"
+            size="sm"
+            decoration="none"
+            aria-pressed={statusFilter === f}
+            variant={statusFilter === f ? "default" : "outline"}
+            onClick={() => setStatusFilter(f)}
+            className="rounded-full"
+          >
+            {f === "all" ? "All" : f === "active" ? "Active" : "Concluded"}
+          </Button>
+        ))}
+        <span className="mx-1 hidden w-px self-stretch bg-border sm:block" aria-hidden />
+        {(["creator", "participant"] as Filter[]).map((f) => (
           <Button
             key={f}
             type="button"
@@ -89,10 +131,10 @@ function HistoryPage() {
             decoration="none"
             aria-pressed={filter === f}
             variant={filter === f ? "default" : "outline"}
-            onClick={() => setFilter(f)}
+            onClick={() => setFilter((prev) => (prev === f ? "all" : f))}
             className="rounded-full"
           >
-            {f === "all" ? "All" : f === "creator" ? "Created by me" : "Answered"}
+            {f === "creator" ? "Created by me" : "Answered"}
           </Button>
         ))}
       </div>
@@ -110,19 +152,24 @@ function HistoryPage() {
           </li>
         )}
         {shown.map((h) => {
+          const status = statusOf(h);
+          const concluded = status !== "active";
           const days = h.expiresAt ? Math.ceil((Date.parse(h.expiresAt) - Date.now()) / 86400000) : null;
           const url = `${window.location.origin}/e/${h.id}`;
           return (
-            <li key={h.id} className="border-b py-5">
+            <li key={h.id} className={cn("border-b py-5", concluded && "opacity-65")}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <Link to="/e/$id" params={{ id: h.id }} className="font-display text-lg font-medium hover:text-highlight">
-                    {h.title}
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Link to="/e/$id" params={{ id: h.id }} className="font-display text-lg font-medium hover:text-highlight">
+                      {h.title}
+                    </Link>
+                    <StatusBadge status={status} />
+                  </div>
                   <div className="eyebrow mt-2 flex flex-wrap gap-x-3 gap-y-1">
                     <span className="text-foreground">{h.role === "creator" ? "Organizer" : "Participant"}</span>
                     {h.name && <span>Answered as {h.name}</span>}
-                    {days != null && <span>{days > 0 ? `Expires in ${days} day${days === 1 ? "" : "s"}` : "Expired"}</span>}
+                    {days != null && status !== "expired" && <span>{days > 0 ? `Expires in ${days} day${days === 1 ? "" : "s"}` : "Expired"}</span>}
                     <span>Opened {new Date(h.lastVisitedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
