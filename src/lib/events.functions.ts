@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database, Json } from "@/integrations/supabase/types";
-import { validatePollAction } from "@/lib/poll-actions";
+import { lockCoveredByAttendee, validatePollAction } from "@/lib/poll-actions";
 
 export type EventRow = {
   id: string;
@@ -220,6 +220,10 @@ export const adminUpdate = createServerFn({ method: "POST" })
     let patch: { closed: boolean; final_start?: string | null; final_end?: string | null; lock_history?: Json };
     if (data.action === "lock") {
       if (data.start == null || data.end == null || data.end <= data.start) throw new Error("Pick a time");
+      const { data: rows } = await supabaseAdmin.from("responses").select("slots").eq("event_id", data.event_id);
+      if (!lockCoveredByAttendee(rows ?? [], data.start, data.end, ev.slot_minutes)) {
+        throw new Error("You can only lock in a time that at least one person has selected");
+      }
       const final_start = new Date(data.start * 60000).toISOString();
       const final_end = new Date(data.end * 60000).toISOString();
       const raw = (ev as { lock_history?: unknown }).lock_history;

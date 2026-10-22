@@ -27,3 +27,18 @@ export function validatePollAction(
   });
   if (!valid) throw new Error("Choose a time within this poll's available slots");
 }
+
+/** Every slot in [start, end) must be covered by at least one saved response. */
+export function lockCoveredByAttendee(
+  responses: { slots: number[]; name?: string }[],
+  start: number,
+  end: number,
+  slotMinutes: number,
+): boolean {
+  if (!responses.length) return false;
+  const sets = responses.map((r) => new Set(r.slots.map(Number)));
+  for (let slot = start; slot < end; slot += slotMinutes) {
+    if (!sets.some((s) => s.has(slot))) return false;
+  }
+  return true;
+}
