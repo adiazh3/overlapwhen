@@ -3,7 +3,46 @@ import { useHistory } from "@/hooks/use-history";
 import { recordPoll } from "@/lib/poll-history";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { CalendarClock, Loader2, Users, Sparkles } from "lucide-react";
+import { CalendarClock, Check, Loader2, Users, Sparkles, Share2 } from "lucide-react";
+
+const PREVIEW_LEVELS = [
+  [0.1, 0.3, 0.5, 0.3, 0.1],
+  [0.3, 0.75, 1, 0.5, 0.15],
+  [0.15, 0.5, 0.75, 0.3, 0.06],
+  [0.06, 0.15, 0.3, 0.15, 0.06],
+];
+
+/** Decorative mock of a group heatmap with a recommended pick. */
+function HeroPreview() {
+  return (
+    <div aria-hidden className="w-full max-w-sm rounded-lg border bg-card p-4 shadow-soft md:w-80">
+      <div className="flex items-center justify-between">
+        <span className="eyebrow">Group availability</span>
+        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="size-1.5 rounded-full bg-highlight" /> Live
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-5 gap-1">
+        {PREVIEW_LEVELS.flatMap((row, r) =>
+          row.map((l, c) => (
+            <div
+              key={`${r}-${c}`}
+              className={`heat-cell h-7 rounded-sm ${l === 1 ? "ring-2 ring-highlight ring-offset-2 ring-offset-card" : ""}`}
+              style={{ ["--level" as string]: l }}
+            />
+          )),
+        )}
+      </div>
+      <div className="mt-4 flex items-center gap-3 rounded-md bg-primary p-3 text-primary-foreground">
+        <span className="grid size-7 place-items-center rounded-full bg-highlight"><Check className="size-4" /></span>
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] opacity-75">Best pick · 5/5 free</p>
+          <p className="text-sm font-medium">Wed · 7:00 PM</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
