@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Check } from "lucide-react";
 import { fmtDay, fmtTime } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 
@@ -123,10 +124,14 @@ export function AvailabilityGrid({
                     isHour && "border-b border-b-border",
                     mode === "paint" ? (on ? "paint-on" : "bg-heat-0 hover:bg-accent") : "heat-cell",
                     highlight?.has(slot) && "outline-2 outline-offset-[-2px] outline-success",
-                    active === slot && "outline-2 outline-offset-[-2px] outline-ring",
+                    mode === "heat" && active != null && active !== slot && "opacity-55",
+                    active === slot && "slot-active",
                   )}
                   style={mode === "heat" ? ({ ["--level" as string]: level } as React.CSSProperties) : undefined}
-                />
+                  aria-selected={active === slot || undefined}
+                >
+                  {active === slot && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />}
+                </div>
               );
             })}
           </Row>

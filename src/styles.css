@@ -199,3 +199,26 @@
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* Selected group slot: cobalt fill, bold ring, check, pop-in. */
+@utility slot-active {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--highlight) !important;
+  color: var(--highlight-foreground);
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--highlight), 0 6px 16px -4px color-mix(in oklab, var(--highlight) 60%, transparent);
+  animation: slot-pop 0.22s cubic-bezier(0.2, 0.7, 0.2, 1.4) both;
+}
+
+@keyframes slot-pop {
+  from { transform: scale(0.8); }
+  to { transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot-active { animation: none; }
+}
