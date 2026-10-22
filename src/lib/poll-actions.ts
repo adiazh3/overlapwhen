@@ -30,7 +30,7 @@ export function validatePollAction(
 
 /** Every slot in [start, end) must be covered by at least one saved response. */
 export function lockCoveredByAttendee(
-  responses: { slots: number[] }[],
+  responses: { slots: number[]; name?: string }[],
   start: number,
   end: number,
   slotMinutes: number,
