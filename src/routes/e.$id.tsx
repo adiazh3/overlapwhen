@@ -395,7 +395,7 @@ function EventPage() {
           <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="heat" counts={counts} total={responses.length} active={active} onActive={setActive} highlight={finalStart != null ? new Set(shape.grid.flat().filter((s) => s >= finalStart && s < (finalEnd ?? 0))) : undefined} />
           <div className="mt-4 border-t pt-3">
             {active == null ? (
-              <p className="text-sm text-muted-foreground">Hover or tap a slot to see who's available.</p>
+              <p className="text-sm text-muted-foreground">Click or tap a slot to select it. Click it again to clear.</p>
             ) : (
               <>
                 <div className="mb-2 text-sm font-semibold">{fmtRange(active, active + ev.slot_minutes, tz)}</div>
