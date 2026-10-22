@@ -122,26 +122,30 @@ function Index() {
               </span>
             </div>
           </div>
-          <div className="flex gap-px" aria-hidden>
-            {[0.06, 0.15, 0.3, 0.5, 0.75, 1].map((l) => (
-              <div key={l} className="heat-cell h-8 w-8 md:w-12" style={{ ["--level" as string]: l }} />
-            ))}
-          </div>
+          <HeroPreview />
         </div>
       </section>
 
-      <ol className="mt-14 grid border-y border-border md:grid-cols-3">
+      <ol className="mt-14 grid gap-3 md:grid-cols-3">
         {[
-          ["01", "Create", "Pick days and a time window."],
-          ["02", "Share", "Send one link. No sign-ups."],
-          ["03", "Overlap", "Top times are picked for you."],
-        ].map(([n, t, d], i) => (
-          <li key={n} className={`py-6 md:px-6 ${i > 0 ? "border-t border-border md:border-l md:border-t-0" : "md:pl-0"}`}>
-            <span className="eyebrow">{n}</span>
-            <h3 className="mt-3 text-2xl">{t}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{d}</p>
-          </li>
-        ))}
+          ["01", "Create", "Pick days and a time window.", CalendarClock],
+          ["02", "Share", "Send one link. No sign-ups.", Share2],
+          ["03", "Overlap", "Top times are picked for you.", Sparkles],
+        ].map(([n, t, d, Icon]) => {
+          const I = Icon as typeof Sparkles;
+          return (
+            <li key={n as string} className="group rounded-lg border bg-card p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-highlight/50">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow">{n as string}</span>
+                <span className="grid size-9 place-items-center rounded-full bg-muted text-foreground transition group-hover:bg-highlight group-hover:text-primary-foreground">
+                  <I className="size-4" aria-hidden />
+                </span>
+              </div>
+              <h3 className="mt-4 text-2xl">{t as string}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{d as string}</p>
+            </li>
+          );
+        })}
       </ol>
 
       <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-[1fr_1.1fr] md:gap-14">
