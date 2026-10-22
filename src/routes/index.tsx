@@ -135,7 +135,7 @@ function Index() {
       <section className="rise-in">
         <p className="eyebrow">Group scheduling — No accounts</p>
         <h1 className="display-xl mt-5 max-w-4xl">Find the time that works. Skip the group chat.</h1>
-        <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-6">
           <div className="max-w-md">
             <p className="text-muted-foreground">
               Create a poll in seconds, share the link, and everyone paints when they're free.
