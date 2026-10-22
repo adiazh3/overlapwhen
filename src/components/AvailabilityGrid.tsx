@@ -79,10 +79,7 @@ export function AvailabilityGrid({
 
   const onMove = (e: React.PointerEvent) => {
     const slot = slotAt(e.clientX, e.clientY);
-    if (mode === "heat") {
-      if (e.pointerType === "mouse") onActive?.(slot);
-      return;
-    }
+    if (mode === "heat") return;
     if (drag.current && slot != null) apply(slot);
   };
 
@@ -96,7 +93,6 @@ export function AvailabilityGrid({
         style={{ gridTemplateColumns: `3.75rem repeat(${grid.length}, minmax(2.75rem, 1fr))` }}
         onPointerDown={onDown}
         onPointerMove={onMove}
-        onPointerLeave={(e) => mode === "heat" && e.pointerType === "mouse" && onActive?.(null)}
       >
         <div />
         {grid.map((col, d) => {
