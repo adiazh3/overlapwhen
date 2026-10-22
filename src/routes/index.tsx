@@ -3,7 +3,46 @@ import { useHistory } from "@/hooks/use-history";
 import { recordPoll } from "@/lib/poll-history";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { CalendarClock, Loader2, Users, Sparkles } from "lucide-react";
+import { CalendarClock, Check, Loader2, Users, Sparkles, Share2 } from "lucide-react";
+
+const PREVIEW_LEVELS = [
+  [0.1, 0.3, 0.5, 0.3, 0.1],
+  [0.3, 0.75, 1, 0.5, 0.15],
+  [0.15, 0.5, 0.75, 0.3, 0.06],
+  [0.06, 0.15, 0.3, 0.15, 0.06],
+];
+
+/** Decorative mock of a group heatmap with a recommended pick. */
+function HeroPreview() {
+  return (
+    <div aria-hidden className="w-full max-w-sm rounded-lg border bg-card p-4 shadow-soft md:w-80">
+      <div className="flex items-center justify-between">
+        <span className="eyebrow">Group availability</span>
+        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="size-1.5 rounded-full bg-highlight" /> Live
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-5 gap-1">
+        {PREVIEW_LEVELS.flatMap((row, r) =>
+          row.map((l, c) => (
+            <div
+              key={`${r}-${c}`}
+              className={`heat-cell h-7 rounded-sm ${l === 1 ? "ring-2 ring-highlight ring-offset-2 ring-offset-card" : ""}`}
+              style={{ ["--level" as string]: l }}
+            />
+          )),
+        )}
+      </div>
+      <div className="mt-4 flex items-center gap-3 rounded-md bg-primary p-3 text-primary-foreground">
+        <span className="grid size-7 place-items-center rounded-full bg-highlight"><Check className="size-4" /></span>
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] opacity-75">Best pick · 5/5 free</p>
+          <p className="text-sm font-medium">Wed · 7:00 PM</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,7 +135,7 @@ function Index() {
       <section className="rise-in">
         <p className="eyebrow">Group scheduling — No accounts</p>
         <h1 className="display-xl mt-5 max-w-4xl">Find the time that works. Skip the group chat.</h1>
-        <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-6">
           <div className="max-w-md">
             <p className="text-muted-foreground">
               Create a poll in seconds, share the link, and everyone paints when they're free.
@@ -122,26 +161,30 @@ function Index() {
               </span>
             </div>
           </div>
-          <div className="flex gap-px" aria-hidden>
-            {[0.06, 0.15, 0.3, 0.5, 0.75, 1].map((l) => (
-              <div key={l} className="heat-cell h-8 w-8 md:w-12" style={{ ["--level" as string]: l }} />
-            ))}
-          </div>
+          <HeroPreview />
         </div>
       </section>
 
-      <ol className="mt-14 grid border-y border-border md:grid-cols-3">
+      <ol className="mt-14 grid gap-3 md:grid-cols-3">
         {[
-          ["01", "Create", "Pick days and a time window."],
-          ["02", "Share", "Send one link. No sign-ups."],
-          ["03", "Overlap", "Top times are picked for you."],
-        ].map(([n, t, d], i) => (
-          <li key={n} className={`py-6 md:px-6 ${i > 0 ? "border-t border-border md:border-l md:border-t-0" : "md:pl-0"}`}>
-            <span className="eyebrow">{n}</span>
-            <h3 className="mt-3 text-2xl">{t}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{d}</p>
-          </li>
-        ))}
+          ["01", "Create", "Pick days and a time window.", CalendarClock],
+          ["02", "Share", "Send one link. No sign-ups.", Share2],
+          ["03", "Overlap", "Top times are picked for you.", Sparkles],
+        ].map(([n, t, d, Icon]) => {
+          const I = Icon as typeof Sparkles;
+          return (
+            <li key={n as string} className="group rounded-lg border bg-card p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-highlight/50">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow">{n as string}</span>
+                <span className="grid size-9 place-items-center rounded-full bg-muted text-foreground transition group-hover:bg-highlight group-hover:text-primary-foreground">
+                  <I className="size-4" aria-hidden />
+                </span>
+              </div>
+              <h3 className="mt-4 text-2xl">{t as string}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{d as string}</p>
+            </li>
+          );
+        })}
       </ol>
 
       <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-[1fr_1.1fr] md:gap-14">
