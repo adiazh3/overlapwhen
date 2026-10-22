@@ -404,10 +404,13 @@ function EventPage() {
                   <PeopleList label="Available" names={activeNames} ok />
                   <PeopleList label="Missing" names={activeMissing} />
                 </div>
-                {!ev.closed && (
+                {!ev.closed && activeNames.length > 0 && (
                   <Button size="sm" variant="outline" className="mt-2" onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
                     <CalendarCheck /> Lock in this slot
                   </Button>
+                )}
+                {!ev.closed && activeNames.length === 0 && (
+                  <p className="mt-2 text-sm text-muted-foreground">Nobody is free at this time, so it can't be locked in.</p>
                 )}
               </>
             )}

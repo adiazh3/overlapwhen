@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validatePollAction } from "@/lib/poll-actions";
+import { lockCoveredByAttendee, validatePollAction } from "@/lib/poll-actions";
 import { buildGrid } from "@/lib/slots";
 
 const event = {
@@ -29,5 +29,12 @@ describe("collaborative scheduling permissions", () => {
     for (const [from, to] of [[start - 30, start], [start, start + 150], [start, start + 15]]) {
       expect(() => validatePollAction(event, { action: "lock", start: from, end: to })).toThrow();
     }
+  });
+  it("only allows locking a time that at least one respondent has selected", () => {
+    expect(lockCoveredByAttendee([], start, start + 30, 30)).toBe(false);
+    expect(lockCoveredByAttendee([{ name: "A", slots: [start + 30] }], start, start + 30, 30)).toBe(false);
+    expect(lockCoveredByAttendee([{ name: "A", slots: [start] }], start, start + 30, 30)).toBe(true);
+    expect(lockCoveredByAttendee([{ name: "A", slots: [start] }, { name: "B", slots: [start + 30] }], start, start + 60, 30)).toBe(true);
+    expect(lockCoveredByAttendee([{ name: "A", slots: [start] }], start, start + 60, 30)).toBe(false);
   });
 });
