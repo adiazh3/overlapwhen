@@ -101,6 +101,14 @@
     letter-spacing: -0.035em;
     font-weight: 500;
   }
+  /* Touch devices: 44px fields, roomier text links, press feedback, no grey tap flash. */
+  @media (pointer: coarse) {
+    html { -webkit-tap-highlight-color: transparent; }
+    input:not([type="checkbox"]):not([type="radio"]), textarea, select { min-height: 44px; font-size: 16px; }
+    footer a, header nav a, main a:not([class*="rounded"]) { display: inline-flex; align-items: center; min-height: 44px; }
+    button:not(:disabled), a, [role="button"] { transition: transform 0.12s ease, opacity 0.12s ease; }
+    button:not(:disabled):active, a:active, [role="button"]:active { transform: scale(0.97); opacity: 0.85; }
+  }
 }
 
 /* Shared editorial action buttons; contrast stays explicit on dark bands. */
