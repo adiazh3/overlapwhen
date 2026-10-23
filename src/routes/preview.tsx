@@ -21,7 +21,7 @@ function PreviewPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-12">
       <h1 className="mb-8 text-center font-display text-3xl font-semibold tracking-tight">How it works</h1>
-      <HowItWorksTutorial onFinish={() => navigate({ to: "/" })} />
+      <HowItWorksTutorial onFinish={() => navigate({ to: "/", hash: "create-poll" })} />
     </main>
   );
 }
