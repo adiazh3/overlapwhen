@@ -457,21 +457,21 @@ function EventPage() {
                     )}
                   </div>
                   {!ev.closed && (
-                    <Button size="sm" variant={best ? "secondary" : "outline"} className="mt-4 w-full" onClick={() => doAdmin("lock", r.start, r.end)}>
+                    <Button size="sm" variant={best ? "secondary" : "outline"} className="mt-4 w-full" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
                       <CalendarCheck /> {best ? "Lock in this time" : "Lock in"}
                     </Button>
                   )}
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ol>
           {ranked.length > 3 && (
             <div className="mt-4">
-              <Button size="sm" variant="outline" aria-expanded={showMore} onClick={() => setShowMore((v) => !v)}>
+              <Button size="sm" variant="outline" aria-expanded={showMore} aria-controls="more-times" onClick={() => setShowMore((v) => !v)}>
                 {showMore ? "Hide more times" : `View more times (${ranked.length - 3})`}
               </Button>
               {showMore && (
-                <ol className="mt-3 divide-y border-y">
+                <ol id="more-times" className="mt-3 divide-y border-y" aria-label="More meeting times, best first">
                   {ranked.slice(3).map((r) => (
                     <li key={r.start} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 text-sm">
                       <span className="w-8 font-mono text-xs tabular-nums text-muted-foreground">#{r.rank}</span>
