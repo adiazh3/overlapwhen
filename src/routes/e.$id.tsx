@@ -655,12 +655,12 @@ function FinalCard({ id, title, description, start, end, tz, onReopen, names, fo
     URL.revokeObjectURL(url);
   };
   return (
-    <section className="mb-8 rounded-lg bg-band p-6 text-band-foreground ring-1 ring-highlight/40 md:p-8">
+    <section ref={sectionRef} tabIndex={-1} aria-labelledby="final-card-heading" className="mb-8 rounded-lg bg-band p-6 text-band-foreground ring-1 ring-highlight/40 focus:outline-none md:p-8">
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-highlight px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-highlight-foreground"><Lock className="size-3" aria-hidden /> Locked in</span>
         <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-band-muted">Voting complete</span>
       </div>
-      <div className="mt-3 font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{fmtRange(start, end, tz)}</div>
+      <div id="final-card-heading" className="mt-3 font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{fmtRange(start, end, tz)}</div>
       {names.length > 0 && <div className="mt-1 text-sm opacity-80">With {names.join(", ")}</div>}
       <p className="mt-2 text-sm text-band-muted">This time is final for everyone. Anyone with the link can reopen the poll if plans change.</p>
       <div className="mt-4 flex flex-wrap gap-2">
