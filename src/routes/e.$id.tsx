@@ -205,6 +205,8 @@ function EventPage() {
   );
 
   const [pending, setPending] = useState<{ action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined } | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const confirmedRef = useRef(false);
   const mineRef = useRef(mine);
   mineRef.current = mine;
   const onPaintEnd = useCallback(() => persist(mineRef.current), [persist]);
