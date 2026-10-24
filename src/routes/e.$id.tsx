@@ -144,7 +144,7 @@ function EventPage() {
   useEffect(() => {
     if (!ev?.title) return;
     const status = isExpired(ev.expires_at) ? "expired" : ev.final_start ? "locked" : ev.closed ? "closed" : "active";
-    recordPoll({ id, title: ev.title, expiresAt: ev.expires_at, name: me?.name, role: adminToken ? "creator" : "participant", status });
+    recordPoll({ id, title: ev.title, expiresAt: ev.expires_at, name: me?.name, role: adminToken ? "creator" : "participant", status, lockedStart: ev.final_start ?? undefined });
   }, [id, ev?.title, ev?.expires_at, ev?.final_start, ev?.closed, me?.name, adminToken]);
 
   const shape = useMemo(() => (ev ? buildGrid(ev) : null), [ev]);

@@ -9,6 +9,7 @@ export type HistoryEntry = {
   lastVisitedAt: number;
   expiresAt?: string | undefined;
   status?: PollStatus | undefined;
+  lockedStart?: string | undefined;
 };
 
 const KEY = "overlap:history:v1";
@@ -40,6 +41,7 @@ export function mergeEntry(list: HistoryEntry[], e: Partial<HistoryEntry> & { id
     lastVisitedAt: now,
     expiresAt: e.expiresAt ?? prev?.expiresAt,
     status: e.status ?? prev?.status,
+    lockedStart: e.lockedStart ?? prev?.lockedStart,
   };
   return [next, ...list.filter((x) => x.id !== e.id)];
 }

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Copy, ExternalLink, Info, KeyRound, Search, Trash2 } from "lucide-react";
+import { Archive, CalendarClock, Clock, Copy, ExternalLink, Info, KeyRound, Lock, Search, Trash2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/history")({
 });
 
 type Filter = "all" | "creator" | "participant";
-type StatusFilter = "all" | "active" | "concluded";
+type StatusFilter = "all" | "active" | "locked" | "closed";
 type Sort = "recent" | "newest" | "expiring";
 
 function statusOf(h: HistoryEntry): PollStatus {
@@ -32,11 +32,11 @@ function statusOf(h: HistoryEntry): PollStatus {
   return h.status ?? "active";
 }
 
-const STATUS_META: Record<PollStatus, { label: string; className: string }> = {
-  active: { label: "Active", className: "border-border text-foreground" },
-  locked: { label: "Locked in", className: "border-primary bg-primary text-primary-foreground" },
-  closed: { label: "Closed", className: "border-border bg-muted text-muted-foreground" },
-  expired: { label: "Expired", className: "border-border text-muted-foreground" },
+const STATUS_META: Record<PollStatus, { label: string; className: string; Icon?: LucideIcon }> = {
+  active: { label: "Active", className: "border-highlight/50 bg-highlight/10 text-highlight" },
+  locked: { label: "Locked in", className: "border-primary bg-primary text-primary-foreground", Icon: Lock },
+  closed: { label: "Closed", className: "border-border bg-muted text-muted-foreground", Icon: Archive },
+  expired: { label: "Expired", className: "border-border text-muted-foreground", Icon: Clock },
 };
 
 function StatusBadge({ status }: { status: PollStatus }) {
@@ -44,8 +44,36 @@ function StatusBadge({ status }: { status: PollStatus }) {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${meta.className}`}>
       {status === "active" && <span className="size-1.5 animate-pulse rounded-full bg-highlight" aria-hidden />}
+      {meta.Icon && <meta.Icon className="size-3" aria-hidden />}
       {meta.label}
     </span>
+  );
+}
+
+const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "locked", label: "Locked in" },
+  { key: "closed", label: "Closed" },
+];
+
+function matchesStatus(h: HistoryEntry, f: StatusFilter): boolean {
+  if (f === "all") return true;
+  const s = statusOf(h);
+  if (f === "closed") return s === "closed" || s === "expired";
+  return s === f;
+}
+
+function EmptyState({ Icon, title, body, cta }: { Icon: LucideIcon; title: string; body: string; cta?: React.ReactNode }) {
+  return (
+    <li className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-12 text-center">
+      <span className="flex size-11 items-center justify-center rounded-full bg-muted">
+        <Icon className="size-5 text-muted-foreground" aria-hidden />
+      </span>
+      <p className="font-display text-lg font-medium">{title}</p>
+      <p className="max-w-sm text-sm text-muted-foreground">{body}</p>
+      {cta}
+    </li>
   );
 }
 
@@ -57,12 +85,23 @@ function HistoryPage() {
   const [sort, setSort] = useState<Sort>("recent");
   const [code, setCode] = useState("");
 
+  const counts = useMemo(() => {
+    const c: Record<StatusFilter, number> = { all: list.length, active: 0, locked: 0, closed: 0 };
+    for (const h of list) {
+      const s = statusOf(h);
+      if (s === "active") c.active++;
+      else if (s === "locked") c.locked++;
+      else c.closed++;
+    }
+    return c;
+  }, [list]);
+
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase();
     const out = list.filter(
       (h) =>
         (filter === "all" || h.role === filter) &&
-        (statusFilter === "all" || (statusFilter === "active" ? statusOf(h) === "active" : statusOf(h) !== "active")) &&
+        matchesStatus(h, statusFilter) &&
         (!s || h.title.toLowerCase().includes(s) || (h.name ?? "").toLowerCase().includes(s)),
     );
     const exp = (h: (typeof out)[number]) => (h.expiresAt ? Date.parse(h.expiresAt) : Infinity);
@@ -76,6 +115,8 @@ function HistoryPage() {
     await navigator.clipboard.writeText(text);
     toast.success(msg);
   };
+
+  const searching = q.trim().length > 0;
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-12 md:py-20">
@@ -108,18 +149,26 @@ function HistoryPage() {
         </select>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {(["all", "active", "concluded"] as StatusFilter[]).map((f) => (
+        {STATUS_FILTERS.map((f) => (
           <Button
-            key={f}
+            key={f.key}
             type="button"
             size="sm"
             decoration="none"
-            aria-pressed={statusFilter === f}
-            variant={statusFilter === f ? "default" : "outline"}
-            onClick={() => setStatusFilter(f)}
+            aria-pressed={statusFilter === f.key}
+            variant={statusFilter === f.key ? "default" : "outline"}
+            onClick={() => setStatusFilter(f.key)}
             className="rounded-full"
           >
-            {f === "all" ? "All" : f === "active" ? "Active" : "Concluded"}
+            {f.label}
+            <span
+              className={cn(
+                "rounded-full px-1.5 text-[10px] tracking-normal",
+                statusFilter === f.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground",
+              )}
+            >
+              {counts[f.key]}
+            </span>
           </Button>
         ))}
         <span className="mx-1 hidden w-px self-stretch bg-border sm:block" aria-hidden />
@@ -139,17 +188,37 @@ function HistoryPage() {
         ))}
       </div>
 
-      <ul className="mt-6 border-t">
+      <ul className="mt-6 space-y-3">
         {shown.length === 0 && (
-          <li className="border-b py-10 text-center text-sm text-muted-foreground">
-            {list.length === 0 ? (
-              <>
-                No polls yet. <Link to="/" className="underline">Create one</Link> or open a link someone shared — it'll show up here.
-              </>
-            ) : (
-              "No polls match your search."
-            )}
-          </li>
+          list.length === 0 ? (
+            <EmptyState
+              Icon={CalendarClock}
+              title="No polls yet"
+              body="Create a poll or open a link someone shared — it'll show up here automatically."
+              cta={
+                <Button asChild className="mt-1">
+                  <Link to="/" hash="create-poll">Create a poll</Link>
+                </Button>
+              }
+            />
+          ) : searching ? (
+            <EmptyState Icon={Search} title="No matches" body={`Nothing matches "${q.trim()}". Try a different poll title or name.`} />
+          ) : statusFilter === "active" ? (
+            <EmptyState
+              Icon={CalendarClock}
+              title="No active polls"
+              body="Everything here is wrapped up. Start a new poll to find your next time."
+              cta={
+                <Button asChild className="mt-1">
+                  <Link to="/" hash="create-poll">Create a poll</Link>
+                </Button>
+              }
+            />
+          ) : statusFilter === "locked" ? (
+            <EmptyState Icon={Lock} title="No locked-in polls" body="When a time gets locked in on one of your polls, it'll show up here with the final time." />
+          ) : (
+            <EmptyState Icon={Archive} title="No closed polls" body="Polls that are closed early or expire will land here, so you can always look back." />
+          )
         )}
         {shown.map((h) => {
           const status = statusOf(h);
@@ -157,7 +226,15 @@ function HistoryPage() {
           const days = h.expiresAt ? Math.ceil((Date.parse(h.expiresAt) - Date.now()) / 86400000) : null;
           const url = `${window.location.origin}/e/${h.id}`;
           return (
-            <li key={h.id} className={cn("border-b py-5", concluded && "opacity-65")}>
+            <li
+              key={h.id}
+              className={cn(
+                "rounded-lg border bg-card p-4 shadow-soft transition",
+                status === "active" && "border-l-2 border-l-highlight",
+                status === "locked" && "border-primary/40",
+                concluded && "opacity-65",
+              )}
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2.5">
@@ -166,6 +243,12 @@ function HistoryPage() {
                     </Link>
                     <StatusBadge status={status} />
                   </div>
+                  {status === "locked" && h.lockedStart && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium">
+                      <Lock className="size-3.5 text-highlight" aria-hidden />
+                      {new Date(h.lockedStart).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                    </p>
+                  )}
                   <div className="eyebrow mt-2 flex flex-wrap gap-x-3 gap-y-1">
                     <span className="text-foreground">{h.role === "creator" ? "Organizer" : "Participant"}</span>
                     {h.name && <span>Answered as {h.name}</span>}
