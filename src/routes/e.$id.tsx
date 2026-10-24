@@ -395,7 +395,7 @@ function EventPage() {
             <span>{responses.length}/{responses.length} available</span>
           </div>
           <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="heat" counts={counts} total={responses.length} active={active} onActive={setActive} highlight={finalStart != null ? new Set(shape.grid.flat().filter((s) => s >= finalStart && s < (finalEnd ?? 0))) : undefined} />
-          <div className="mt-4 border-t pt-3">
+          <div className="mt-4 border-t pt-3" aria-live="polite">
             {active == null ? (
               <p className="text-sm text-muted-foreground">Click or tap a slot to select it. Click it again to clear.</p>
             ) : (
@@ -407,7 +407,7 @@ function EventPage() {
                   <PeopleList label="Missing" names={activeMissing} />
                 </div>
                 {!ev.closed && activeNames.length > 0 && (
-                  <Button size="sm" variant="default" className="mt-2" onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
+                  <Button size="sm" variant="default" className="mt-2" aria-label={`Lock in ${fmtRange(active, active + ev.slot_minutes, tz)}`} onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
                     <CalendarCheck /> Lock in this slot
                   </Button>
                 )}
@@ -479,7 +479,7 @@ function EventPage() {
                       <span className="text-xs tabular-nums text-muted-foreground">{r.count}/{responses.length} · {votePercentage(r.count, responses.length)}%</span>
                       <span className="hidden max-w-[14rem] truncate text-xs text-muted-foreground sm:inline" title={r.names.join(", ")}>{r.names.join(", ")}</span>
                       {!ev.closed && (
-                        <Button size="sm" variant="ghost" decoration="none" onClick={() => doAdmin("lock", r.start, r.end)}>
+                        <Button size="sm" variant="ghost" decoration="none" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
                           <CalendarCheck /> Lock in
                         </Button>
                       )}
