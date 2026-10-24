@@ -173,6 +173,7 @@ function EventPage() {
   );
   const recs = ranked.slice(0, 3);
   const [showMore, setShowMore] = useState(false);
+  const [focusFinal, setFocusFinal] = useState(false);
 
   const persist = useCallback(
     async (slots: Set<number>) => {
@@ -204,6 +205,8 @@ function EventPage() {
   );
 
   const [pending, setPending] = useState<{ action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined } | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const confirmedRef = useRef(false);
   const mineRef = useRef(mine);
   mineRef.current = mine;
   const onPaintEnd = useCallback(() => persist(mineRef.current), [persist]);
@@ -223,6 +226,8 @@ function EventPage() {
 
   function doAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
     if (action === "close" && !adminToken && !isFirstRespondent) return;
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    confirmedRef.current = false;
     setPending({ action, start, end });
   }
 
@@ -230,6 +235,7 @@ function EventPage() {
     try {
       await admin({ data: { event_id: id, token: adminToken ?? undefined, pin: adminToken ? undefined : me?.pin || undefined, action, start, end } });
       qc.invalidateQueries({ queryKey: ["event", id] });
+      if (action === "lock") setFocusFinal(true);
       toast.success(action === "lock" ? "Final time locked in" : action === "close" ? "Poll closed" : "Poll reopened");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Something went wrong");
@@ -252,7 +258,14 @@ function EventPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
-      <AlertDialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
+      <AlertDialog
+        open={!!pending}
+        onOpenChange={(o) => {
+          if (o) return;
+          setPending(null);
+          if (!confirmedRef.current) setTimeout(() => openerRef.current?.focus(), 0);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmCopy?.title}</AlertDialogTitle>
@@ -262,6 +275,7 @@ function EventPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
+                confirmedRef.current = true;
                 if (pending) void runAdmin(pending.action, pending.start, pending.end);
                 setPending(null);
               }}
@@ -318,7 +332,7 @@ function EventPage() {
       </div>
 
       {finalStart != null && finalEnd != null && (
-        <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} />
+        <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} focusOnMount={focusFinal} onFocused={() => setFocusFinal(false)} />
       )}
       {(ev.lock_history?.length ?? 0) > 0 && <LockHistory entries={ev.lock_history ?? []} tz={tz} />}
       {ev.closed && finalStart == null && (
@@ -393,7 +407,7 @@ function EventPage() {
             <span>{responses.length}/{responses.length} available</span>
           </div>
           <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="heat" counts={counts} total={responses.length} active={active} onActive={setActive} highlight={finalStart != null ? new Set(shape.grid.flat().filter((s) => s >= finalStart && s < (finalEnd ?? 0))) : undefined} />
-          <div className="mt-4 border-t pt-3">
+          <div className="mt-4 border-t pt-3" aria-live="polite">
             {active == null ? (
               <p className="text-sm text-muted-foreground">Click or tap a slot to select it. Click it again to clear.</p>
             ) : (
@@ -405,7 +419,7 @@ function EventPage() {
                   <PeopleList label="Missing" names={activeMissing} />
                 </div>
                 {!ev.closed && activeNames.length > 0 && (
-                  <Button size="sm" variant="default" className="mt-2" onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
+                  <Button size="sm" variant="default" className="mt-2" aria-label={`Lock in ${fmtRange(active, active + ev.slot_minutes, tz)}`} onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
                     <CalendarCheck /> Lock in this slot
                   </Button>
                 )}
@@ -425,12 +439,12 @@ function EventPage() {
           <p className="mb-4 text-xs text-muted-foreground">
             {ev.closed ? "Voting is closed. Reopen the poll to change the final time." : "Ranked by who can attend, then by open time around each slot, then earliest."}
           </p>
-          <div className="grid gap-3 md:grid-cols-3">
+          <ol className="grid gap-3 md:grid-cols-3" aria-label="Recommended meeting times, best first">
             {recs.map((r) => {
               const missing = responses.filter((res) => !r.names.includes(res.name)).map((res) => res.name);
               const best = r.rank === 1;
               return (
-                <div
+                <li
                   key={r.start}
                   className={cn(
                     "rounded-lg p-5",
@@ -455,21 +469,21 @@ function EventPage() {
                     )}
                   </div>
                   {!ev.closed && (
-                    <Button size="sm" variant={best ? "secondary" : "outline"} className="mt-4 w-full" onClick={() => doAdmin("lock", r.start, r.end)}>
+                    <Button size="sm" variant={best ? "secondary" : "outline"} className="mt-4 w-full" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
                       <CalendarCheck /> {best ? "Lock in this time" : "Lock in"}
                     </Button>
                   )}
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ol>
           {ranked.length > 3 && (
             <div className="mt-4">
-              <Button size="sm" variant="outline" aria-expanded={showMore} onClick={() => setShowMore((v) => !v)}>
+              <Button size="sm" variant="outline" aria-expanded={showMore} aria-controls="more-times" onClick={() => setShowMore((v) => !v)}>
                 {showMore ? "Hide more times" : `View more times (${ranked.length - 3})`}
               </Button>
               {showMore && (
-                <ol className="mt-3 divide-y border-y">
+                <ol id="more-times" className="mt-3 divide-y border-y" aria-label="More meeting times, best first">
                   {ranked.slice(3).map((r) => (
                     <li key={r.start} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 text-sm">
                       <span className="w-8 font-mono text-xs tabular-nums text-muted-foreground">#{r.rank}</span>
@@ -477,7 +491,7 @@ function EventPage() {
                       <span className="text-xs tabular-nums text-muted-foreground">{r.count}/{responses.length} · {votePercentage(r.count, responses.length)}%</span>
                       <span className="hidden max-w-[14rem] truncate text-xs text-muted-foreground sm:inline" title={r.names.join(", ")}>{r.names.join(", ")}</span>
                       {!ev.closed && (
-                        <Button size="sm" variant="ghost" decoration="none" onClick={() => doAdmin("lock", r.start, r.end)}>
+                        <Button size="sm" variant="ghost" decoration="none" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
                           <CalendarCheck /> Lock in
                         </Button>
                       )}
@@ -635,7 +649,13 @@ function Reminder({ id, title, shareUrl, responded }: { id: string; title: strin
   );
 }
 
-function FinalCard({ id, title, description, start, end, tz, onReopen, names }: { id: string; title: string; description: string; start: number; end: number; tz: string; onReopen: () => void; names: string[] }) {
+function FinalCard({ id, title, description, start, end, tz, onReopen, names, focusOnMount, onFocused }: { id: string; title: string; description: string; start: number; end: number; tz: string; onReopen: () => void; names: string[]; focusOnMount?: boolean; onFocused?: () => void }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!focusOnMount) return;
+    sectionRef.current?.focus();
+    onFocused?.();
+  }, [focusOnMount, onFocused]);
   const details = description || `Scheduled with Overlap`;
   const downloadIcs = () => {
     const blob = new Blob([buildIcs(id, title, details, start, end)], { type: "text/calendar" });
@@ -647,12 +667,12 @@ function FinalCard({ id, title, description, start, end, tz, onReopen, names }: 
     URL.revokeObjectURL(url);
   };
   return (
-    <section className="mb-8 rounded-lg bg-band p-6 text-band-foreground ring-1 ring-highlight/40 md:p-8">
+    <section ref={sectionRef} tabIndex={-1} aria-labelledby="final-card-heading" className="mb-8 rounded-lg bg-band p-6 text-band-foreground ring-1 ring-highlight/40 focus:outline-none md:p-8">
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-highlight px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-highlight-foreground"><Lock className="size-3" aria-hidden /> Locked in</span>
         <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-band-muted">Voting complete</span>
       </div>
-      <div className="mt-3 font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{fmtRange(start, end, tz)}</div>
+      <div id="final-card-heading" className="mt-3 font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{fmtRange(start, end, tz)}</div>
       {names.length > 0 && <div className="mt-1 text-sm opacity-80">With {names.join(", ")}</div>}
       <p className="mt-2 text-sm text-band-muted">This time is final for everyone. Anyone with the link can reopen the poll if plans change.</p>
       <div className="mt-4 flex flex-wrap gap-2">
