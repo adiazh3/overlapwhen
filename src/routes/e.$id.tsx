@@ -405,7 +405,7 @@ function EventPage() {
                   <PeopleList label="Missing" names={activeMissing} />
                 </div>
                 {!ev.closed && activeNames.length > 0 && (
-                  <Button size="sm" variant="outline" className="mt-2" onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
+                  <Button size="sm" variant="default" className="mt-2" onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
                     <CalendarCheck /> Lock in this slot
                   </Button>
                 )}
@@ -425,36 +425,40 @@ function EventPage() {
           <p className="mb-4 text-xs text-muted-foreground">
             {ev.closed ? "Voting is closed. Reopen the poll to change the final time." : "Ranked by who can attend, then by open time around each slot, then earliest."}
           </p>
-          <div className="grid border-t md:grid-cols-3 md:border-t-0">
+          <div className="grid gap-3 md:grid-cols-3">
             {recs.map((r) => {
               const missing = responses.filter((res) => !r.names.includes(res.name)).map((res) => res.name);
               const best = r.rank === 1;
               return (
-                <div key={r.start} className={cn("flex gap-4 border-b py-4 md:border-b-0 md:border-l md:px-5 md:first:border-l-0 md:first:pl-0", best && "md:pr-5")}>
-                  <span className={cn("font-display text-4xl font-medium leading-none tabular-nums", best ? "text-highlight" : "text-muted-foreground")}>#{r.rank}</span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold">{fmtRange(r.start, r.end, tz)}</span>
-                      {best && <span className="rounded-full bg-primary px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-primary-foreground">Best pick</span>}
-                    </div>
-                    <div className="mt-1 text-xs tabular-nums text-muted-foreground">
-                      {r.count} of {responses.length} available · {votePercentage(r.count, responses.length)}%
-                    </div>
-                    {r.reason && <p className="mt-1 text-[11px] italic text-muted-foreground">{r.reason}</p>}
-                    <div className="mt-2 space-y-1 text-xs">
-                      <p className="flex items-center gap-1.5"><Check className="size-3 shrink-0 text-success" /> {r.names.join(", ")}</p>
-                      {missing.length > 0 ? (
-                        <p className="flex items-center gap-1.5 text-muted-foreground"><X className="size-3 shrink-0" /> Missing: {missing.join(", ")}</p>
-                      ) : (
-                        <p className="flex items-center gap-1.5 text-muted-foreground"><Check className="size-3 shrink-0" /> Everyone's free</p>
-                      )}
-                    </div>
-                    {!ev.closed && (
-                      <Button size="sm" variant={best ? "default" : "outline"} className="mt-3" onClick={() => doAdmin("lock", r.start, r.end)}>
-                        <CalendarCheck /> Lock in
-                      </Button>
+                <div
+                  key={r.start}
+                  className={cn(
+                    "rounded-lg p-5",
+                    best ? "bg-band text-band-foreground shadow-soft ring-1 ring-highlight/40" : "border bg-card shadow-soft",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={cn("font-display text-4xl font-medium leading-none tabular-nums", best ? "text-highlight" : "text-muted-foreground")}>#{r.rank}</span>
+                    {best && <span className="rounded-full bg-highlight px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-highlight-foreground">Best pick</span>}
+                  </div>
+                  <div className={cn("mt-2 font-semibold", best ? "text-base" : "text-sm")}>{fmtRange(r.start, r.end, tz)}</div>
+                  <div className={cn("mt-1 text-xs tabular-nums", best ? "text-band-muted" : "text-muted-foreground")}>
+                    {r.count} of {responses.length} available · {votePercentage(r.count, responses.length)}%
+                  </div>
+                  {r.reason && <p className={cn("mt-1 text-[11px] italic", best ? "text-band-muted" : "text-muted-foreground")}>{r.reason}</p>}
+                  <div className="mt-2 space-y-1 text-xs">
+                    <p className="flex items-center gap-1.5"><Check className={cn("size-3 shrink-0", best ? "text-highlight" : "text-success")} /> {r.names.join(", ")}</p>
+                    {missing.length > 0 ? (
+                      <p className={cn("flex items-center gap-1.5", best ? "text-band-muted" : "text-muted-foreground")}><X className="size-3 shrink-0" /> Missing: {missing.join(", ")}</p>
+                    ) : (
+                      <p className={cn("flex items-center gap-1.5", best ? "text-band-muted" : "text-muted-foreground")}><Check className="size-3 shrink-0" /> Everyone's free</p>
                     )}
                   </div>
+                  {!ev.closed && (
+                    <Button size="sm" variant={best ? "secondary" : "outline"} className="mt-4 w-full" onClick={() => doAdmin("lock", r.start, r.end)}>
+                      <CalendarCheck /> {best ? "Lock in this time" : "Lock in"}
+                    </Button>
+                  )}
                 </div>
               );
             })}
@@ -643,10 +647,14 @@ function FinalCard({ id, title, description, start, end, tz, onReopen, names }: 
     URL.revokeObjectURL(url);
   };
   return (
-    <section className="mb-8 rounded-lg bg-band p-6 text-band-foreground md:p-8">
-      <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-band-muted"><span className="size-1.5 rounded-full bg-highlight" /> It's happening</div>
+    <section className="mb-8 rounded-lg bg-band p-6 text-band-foreground ring-1 ring-highlight/40 md:p-8">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-highlight px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-highlight-foreground"><Lock className="size-3" aria-hidden /> Locked in</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-band-muted">Voting complete</span>
+      </div>
       <div className="mt-3 font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{fmtRange(start, end, tz)}</div>
       {names.length > 0 && <div className="mt-1 text-sm opacity-80">With {names.join(", ")}</div>}
+      <p className="mt-2 text-sm text-band-muted">This time is final for everyone. Anyone with the link can reopen the poll if plans change.</p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Button asChild size="sm" variant="secondary">
           <a href={googleCalendarUrl(title, details, start, end)} target="_blank" rel="noreferrer">
