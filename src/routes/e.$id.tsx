@@ -320,7 +320,7 @@ function EventPage() {
       </div>
 
       {finalStart != null && finalEnd != null && (
-        <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} />
+        <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} focusOnMount={focusFinal} onFocused={() => setFocusFinal(false)} />
       )}
       {(ev.lock_history?.length ?? 0) > 0 && <LockHistory entries={ev.lock_history ?? []} tz={tz} />}
       {ev.closed && finalStart == null && (
@@ -637,7 +637,13 @@ function Reminder({ id, title, shareUrl, responded }: { id: string; title: strin
   );
 }
 
-function FinalCard({ id, title, description, start, end, tz, onReopen, names }: { id: string; title: string; description: string; start: number; end: number; tz: string; onReopen: () => void; names: string[] }) {
+function FinalCard({ id, title, description, start, end, tz, onReopen, names, focusOnMount, onFocused }: { id: string; title: string; description: string; start: number; end: number; tz: string; onReopen: () => void; names: string[]; focusOnMount?: boolean; onFocused?: () => void }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!focusOnMount) return;
+    sectionRef.current?.focus();
+    onFocused?.();
+  }, [focusOnMount, onFocused]);
   const details = description || `Scheduled with Overlap`;
   const downloadIcs = () => {
     const blob = new Blob([buildIcs(id, title, details, start, end)], { type: "text/calendar" });
