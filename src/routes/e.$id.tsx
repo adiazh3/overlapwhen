@@ -258,7 +258,14 @@ function EventPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
-      <AlertDialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
+      <AlertDialog
+        open={!!pending}
+        onOpenChange={(o) => {
+          if (o) return;
+          setPending(null);
+          if (!confirmedRef.current) openerRef.current?.focus();
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmCopy?.title}</AlertDialogTitle>
@@ -268,6 +275,7 @@ function EventPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
+                confirmedRef.current = true;
                 if (pending) void runAdmin(pending.action, pending.start, pending.end);
                 setPending(null);
               }}
