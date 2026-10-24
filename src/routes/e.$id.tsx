@@ -427,12 +427,12 @@ function EventPage() {
           <p className="mb-4 text-xs text-muted-foreground">
             {ev.closed ? "Voting is closed. Reopen the poll to change the final time." : "Ranked by who can attend, then by open time around each slot, then earliest."}
           </p>
-          <div className="grid gap-3 md:grid-cols-3">
+          <ol className="grid gap-3 md:grid-cols-3" aria-label="Recommended meeting times, best first">
             {recs.map((r) => {
               const missing = responses.filter((res) => !r.names.includes(res.name)).map((res) => res.name);
               const best = r.rank === 1;
               return (
-                <div
+                <li
                   key={r.start}
                   className={cn(
                     "rounded-lg p-5",
