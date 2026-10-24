@@ -226,6 +226,8 @@ function EventPage() {
 
   function doAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
     if (action === "close" && !adminToken && !isFirstRespondent) return;
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    confirmedRef.current = false;
     setPending({ action, start, end });
   }
 
