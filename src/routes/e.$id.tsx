@@ -173,6 +173,7 @@ function EventPage() {
   );
   const recs = ranked.slice(0, 3);
   const [showMore, setShowMore] = useState(false);
+  const [focusFinal, setFocusFinal] = useState(false);
 
   const persist = useCallback(
     async (slots: Set<number>) => {
@@ -230,6 +231,7 @@ function EventPage() {
     try {
       await admin({ data: { event_id: id, token: adminToken ?? undefined, pin: adminToken ? undefined : me?.pin || undefined, action, start, end } });
       qc.invalidateQueries({ queryKey: ["event", id] });
+      if (action === "lock") setFocusFinal(true);
       toast.success(action === "lock" ? "Final time locked in" : action === "close" ? "Poll closed" : "Poll reopened");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Something went wrong");
