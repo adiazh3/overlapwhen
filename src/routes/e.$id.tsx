@@ -263,7 +263,7 @@ function EventPage() {
         onOpenChange={(o) => {
           if (o) return;
           setPending(null);
-          if (!confirmedRef.current) openerRef.current?.focus();
+          if (!confirmedRef.current) setTimeout(() => openerRef.current?.focus(), 0);
         }}
       >
         <AlertDialogContent>
