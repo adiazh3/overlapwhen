@@ -408,7 +408,7 @@ function EventPage() {
                 <span className={cn("grid size-6 shrink-0 place-items-center rounded-full text-xs", me ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>2</span>
                 <h3>Select your available times</h3>
               </div>
-              <p className="mb-3 text-sm text-muted-foreground">{me ? `Click or drag across ${ev.slot_minutes}-minute blocks when you're free. Select separate blocks for breaks; changes save automatically.` : "Enter your name above to unlock time selection."}</p>
+              <p className="mb-3 text-sm text-muted-foreground">{me ? `Tap ${ev.slot_minutes}-minute blocks when you're free, or click and drag with a mouse. Changes save automatically.` : "Enter your name above to unlock time selection."}</p>
               <div className="mb-3 flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5"><span className="bg-heat-0 size-3 rounded-sm border" /> Unavailable</span>
                 <span className="flex items-center gap-1.5"><span className="paint-on size-3 rounded-sm" /> Available</span>
