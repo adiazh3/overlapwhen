@@ -180,7 +180,7 @@ function Index() {
                   <I className="size-4" aria-hidden />
                 </span>
               </div>
-              <h3 className="mt-4 text-2xl">{t as string}</h3>
+              <h2 className="mt-4 text-2xl">{t as string}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{d as string}</p>
             </li>
           );
@@ -274,7 +274,7 @@ function Index() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Slot size</Label>
+            <Label>Meeting length</Label>
             <div className="grid grid-cols-4 gap-1 rounded-full bg-muted p-1">
               {([15, 30, 45, 60] as const).map((s) => (
                 <Button
@@ -291,6 +291,7 @@ function Index() {
                 </Button>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">Recommendations use this length for each meeting option.</p>
           </div>
           <p className="text-xs text-muted-foreground">Times are in {tz}. Everyone sees them in their own timezone.</p>
           <Button type="submit" size="lg" className="w-full" disabled={busy}>

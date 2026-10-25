@@ -37,6 +37,7 @@ import { adminUpdate, checkName, getEventData, saveResponse, type LockEntry, typ
 import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, rankTimes } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 import { recordPoll } from "@/lib/poll-history";
+import { createSerialTask } from "@/lib/serial-task";
 
 // Safari ("Load failed") and Firefox ("NetworkError") reject in-flight fetches
 // when a page reloads or the connection blips; retry those instead of erroring.
@@ -97,6 +98,9 @@ function EventPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [mine, setMine] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+  const saveQueue = useRef(createSerialTask());
+  const saveVersion = useRef(0);
   const [active, setActive] = useState<number | null>(null);
   const [now, setNow] = useState<number | null>(null);
 
@@ -137,6 +141,7 @@ function EventPage() {
     if (!me || loadedFor.current === me.name.toLowerCase()) return;
     const existing = responses.find((r) => r.name.toLowerCase() === me.name.toLowerCase());
     setMine(new Set(existing?.slots ?? []));
+    setSaveState(existing ? "saved" : "idle");
     loadedFor.current = me.name.toLowerCase();
   }, [me, responses]);
 
@@ -179,6 +184,7 @@ function EventPage() {
     async (slots: Set<number>) => {
       if (!me || !ev) return;
       const arr = [...slots].sort((a, b) => a - b);
+      const version = ++saveVersion.current;
       // optimistic
       qc.setQueryData(eventQuery(id).queryKey, (old) => {
         if (!old) return old;
@@ -193,12 +199,19 @@ function EventPage() {
       });
       setSaving(true);
       try {
-        await save({ data: { event_id: id, name: me.name, pin: me.pin || undefined, slots: arr } });
+        await saveQueue.current(() => save({ data: { event_id: id, name: me.name, pin: me.pin || undefined, slots: arr } }));
+        if (version === saveVersion.current) {
+          setSaveState("saved");
+          void qc.invalidateQueries({ queryKey: ["event", id] });
+        }
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Couldn't save");
-        qc.invalidateQueries({ queryKey: ["event", id] });
+        if (version === saveVersion.current) {
+          setSaveState("error");
+          toast.error(e instanceof Error ? e.message : "Couldn't save — retry your availability");
+          void qc.invalidateQueries({ queryKey: ["event", id] });
+        }
       } finally {
-        setSaving(false);
+        if (version === saveVersion.current) setSaving(false);
       }
     },
     [me, ev, id, qc, save],
@@ -243,8 +256,18 @@ function EventPage() {
   }
 
   const copy = async (text: string, msg: string) => {
-    await navigator.clipboard.writeText(text);
-    toast.success(msg);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(msg);
+    } catch {
+      toast.error("Couldn't copy. Try again or copy the page address from your browser.");
+    }
+  };
+
+  const goToRecommendations = () => {
+    const heading = document.getElementById("recommendations-heading");
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
   };
 
   const tzLabel = `${tz.replace(/_/g, " ")}${tz === viewerTz ? " (you)" : tz === ev?.timezone ? " (organizer)" : ""}`;
@@ -331,6 +354,13 @@ function EventPage() {
         </div>
       </div>
 
+      {!ev.closed && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-y py-4">
+          <p className="text-sm text-muted-foreground">{responses.length === 0 ? "Start with your availability, then share the link with your group." : "Recommendations reflect saved responses so far — check everyone has replied before locking in."}</p>
+          {recs.length > 0 && <Button size="sm" variant="outline" onClick={goToRecommendations}><Trophy /> Review top times</Button>}
+        </div>
+      )}
+
       {finalStart != null && finalEnd != null && (
         <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} focusOnMount={focusFinal} onFocused={() => setFocusFinal(false)} />
       )}
@@ -349,8 +379,8 @@ function EventPage() {
             <h2 id="your-availability" className="text-2xl">Your availability</h2>
             {me && !ev.closed && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-                {saving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
-                {saving ? "Saving…" : "Saved"}
+                {saving ? <Loader2 className="size-3 animate-spin" /> : saveState === "saved" ? <Check className="size-3" /> : null}
+                {saving ? "Saving…" : saveState === "error" ? "Not saved" : saveState === "saved" ? "Saved" : "Choose your times"}
               </span>
             )}
           </div>
@@ -359,7 +389,7 @@ function EventPage() {
               <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs text-primary-foreground">{me ? <Check className="size-3" /> : "1"}</span>
                 <h3>{me ? `You're joining as ${me.name}` : "Enter your name"}</h3>
-                {me && <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setMe(null); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>Change name</Button>}
+                {me && <Button variant="outline" size="sm" className="ml-auto" disabled={saving} onClick={() => { setMe(null); setSaveState("idle"); loadedFor.current = null; localStorage.removeItem(`overlap:me:${id}`); }}>Change name</Button>}
               </div>
               {!me && (
                 <>
@@ -379,7 +409,7 @@ function EventPage() {
                 <span className={cn("grid size-6 shrink-0 place-items-center rounded-full text-xs", me ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>2</span>
                 <h3>Select your available times</h3>
               </div>
-              <p className="mb-3 text-sm text-muted-foreground">{me ? `Click or drag across ${ev.slot_minutes}-minute blocks when you're free. Select separate blocks for breaks; changes save automatically.` : "Enter your name above to unlock time selection."}</p>
+              <p className="mb-3 text-sm text-muted-foreground">{me ? `Tap ${ev.slot_minutes}-minute blocks when you're free, or click and drag with a mouse. Changes save automatically.` : "Enter your name above to unlock time selection."}</p>
               <div className="mb-3 flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5"><span className="bg-heat-0 size-3 rounded-sm border" /> Unavailable</span>
                 <span className="flex items-center gap-1.5"><span className="paint-on size-3 rounded-sm" /> Available</span>
@@ -387,6 +417,16 @@ function EventPage() {
               <div inert={!me} className={cn(!me && "opacity-50")}>
                 <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="paint" selected={me ? mine : new Set<number>()} onPaint={me ? setMine : undefined} onPaintEnd={me ? onPaintEnd : undefined} />
               </div>
+              {me && (
+                <div className="mt-4 space-y-3 border-t pt-4">
+                  <p className="text-sm" role="status">{saving ? "Saving your availability…" : saveState === "error" ? "Your latest changes haven't saved. Keep this page open and retry." : saveState === "saved" ? `Availability saved · ${mine.size} block${mine.size === 1 ? "" : "s"} selected.` : "Choose at least one time you're free."}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {saveState === "error" && <Button size="sm" disabled={saving} onClick={() => void persist(mineRef.current)}>Retry saving</Button>}
+                    {saveState === "saved" && !saving && <Button size="sm" onClick={() => copy(shareUrl, "Link copied — send it to your group")}><Copy /> Share with your group</Button>}
+                    {recs.length > 0 && <Button size="sm" variant="outline" disabled={saving || saveState === "error"} onClick={goToRecommendations}><Trophy /> Top times</Button>}
+                  </div>
+                </div>
+              )}
             </>
           )}
           {ev.closed && <p className="py-8 text-center text-sm text-muted-foreground">Responses are closed. See the group's availability.</p>}
@@ -435,7 +475,7 @@ function EventPage() {
       {recs.length > 0 && (
         <section className="mt-10 border-t pt-6">
           <p className="eyebrow mb-1">04 — Recommended</p>
-          <h2 className="mb-1 flex items-center gap-2 text-2xl"><Trophy className="size-5" /> Top times</h2>
+          <h2 id="recommendations-heading" tabIndex={-1} className="mb-1 flex scroll-mt-20 items-center gap-2 text-2xl"><Trophy className="size-5" /> Top times</h2>
           <p className="mb-4 text-xs text-muted-foreground">
             {ev.closed ? "Voting is closed. Reopen the poll to change the final time." : "Ranked by who can attend, then by open time around each slot, then earliest."}
           </p>
@@ -469,7 +509,7 @@ function EventPage() {
                     )}
                   </div>
                   {!ev.closed && (
-                    <Button size="sm" variant={best ? "secondary" : "outline"} className="mt-4 w-full" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
+                    <Button size="sm" variant={best ? "secondary" : "outline"} disabled={saving || saveState === "error"} className="mt-4 w-full" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
                       <CalendarCheck /> {best ? "Lock in this time" : "Lock in"}
                     </Button>
                   )}
@@ -507,7 +547,7 @@ function EventPage() {
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <aside className="contents">
 
-          <Reminder id={id} title={ev.title} shareUrl={shareUrl} responded={responses.map((r) => r.name)} />
+          {!ev.closed && <Reminder id={id} title={ev.title} shareUrl={shareUrl} responded={responses.map((r) => r.name)} />}
           <div className="rounded-2xl border bg-card p-4 shadow-soft">
             <h3 className="mb-2 text-sm font-semibold">Responded ({responses.length})</h3>
             {responses.length === 0 ? (
@@ -582,6 +622,7 @@ function NameForm({ onSubmit, pinRequired }: { onSubmit: (m: Me) => Promise<void
       <div className="space-y-2">
         <Label htmlFor="pin">4-digit PIN <span className="font-normal text-muted-foreground">{pinRequired ? "(required — you're first to respond)" : "(optional, to edit later)"}</span></Label>
         <Input id="pin" inputMode="numeric" required={pinRequired} pattern="\d{4}" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="••••" />
+        <p className="text-xs text-muted-foreground">{pinRequired ? "Remember this PIN to edit your times or close the poll early from another browser." : "Use the same name and PIN when returning to edit your times."}</p>
       </div>
       <Button type="submit" className="w-full" disabled={busy}>
         {busy && <Loader2 className="animate-spin" />} {busy ? "Joining…" : "Continue to time selection"}
@@ -674,8 +715,14 @@ function FinalCard({ id, title, description, start, end, tz, onReopen, names, fo
       </div>
       <div id="final-card-heading" className="mt-3 font-display text-3xl font-medium tracking-[-0.035em] md:text-4xl">{fmtRange(start, end, tz)}</div>
       {names.length > 0 && <div className="mt-1 text-sm opacity-80">With {names.join(", ")}</div>}
-      <p className="mt-2 text-sm text-band-muted">This time is final for everyone. Anyone with the link can reopen the poll if plans change.</p>
+      <p className="mt-2 text-sm text-band-muted">Voting is complete. Share the confirmed time with your group — Overlap doesn't send notifications. Anyone with the link can reopen the poll if plans change.</p>
       <div className="mt-4 flex flex-wrap gap-2">
+        <Button size="sm" variant="secondary" onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(`${title} — confirmed: ${fmtRange(start, end, tz)} (${tz}). ${window.location.origin}/e/${id}`);
+            toast.success("Confirmed time copied — send it to your group");
+          } catch { toast.error("Couldn't copy the confirmed time. Please try again."); }
+        }}><Copy /> Share confirmed time</Button>
         <Button asChild size="sm" variant="secondary">
           <a href={googleCalendarUrl(title, details, start, end)} target="_blank" rel="noreferrer">
             <CalendarCheck /> Add to Google Calendar

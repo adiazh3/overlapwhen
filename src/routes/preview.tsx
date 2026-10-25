@@ -7,7 +7,7 @@ export const Route = createFileRoute("/preview")({
       { title: "How Overlap works — tutorial preview" },
       { name: "description", content: "Preview of the Overlap how-it-works slideshow." },
       { property: "og:title", content: "How Overlap works" },
-      { property: "og:description", content: "A quick three-step tour of Overlap group scheduling." },
+      { property: "og:description", content: "Five steps from creating a poll to sharing a confirmed meeting time with Overlap." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },

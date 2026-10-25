@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
-import { Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { fmtDay, fmtTime } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,11 @@ export function AvailabilityGrid({
   onActive,
 }: Props) {
   const drag = useRef<{ value: boolean; set: Set<number> } | null>(null);
+  const pointerType = useRef("");
+  const [page, setPage] = useState(0);
+  const pageCount = Math.ceil(grid.length / 5);
+  const safePage = Math.min(page, Math.max(0, pageCount - 1));
+  const visibleGrid = grid.slice(safePage * 5, safePage * 5 + 5);
 
   useEffect(() => {
     const up = () => {
@@ -66,37 +72,55 @@ export function AvailabilityGrid({
   };
 
   const onDown = (e: React.PointerEvent) => {
+    pointerType.current = e.pointerType;
+    if (mode === "heat" || e.pointerType === "touch") return;
     const slot = slotAt(e.clientX, e.clientY);
     if (slot == null) return;
-    if (mode === "heat") {
-      onActive?.(active === slot ? null : slot);
-      return;
-    }
     e.preventDefault();
+    (e.target as HTMLElement).closest<HTMLElement>("[data-slot]")?.focus({ preventScroll: true });
     (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
     drag.current = { value: !selected?.has(slot), set: new Set(selected) };
     apply(slot);
   };
 
   const onMove = (e: React.PointerEvent) => {
+    if (e.pointerType === "touch") return;
     const slot = slotAt(e.clientX, e.clientY);
     if (mode === "heat") return;
     if (drag.current && slot != null) apply(slot);
   };
 
   const labelEvery = slotMinutes >= 45 ? 1 : 60 / slotMinutes;
-  const cellH = slotMinutes >= 45 ? "h-9" : slotMinutes === 30 ? "h-6" : "h-5";
+  const toggle = (slot: number) => {
+    if (mode === "heat") {
+      onActive?.(active === slot ? null : slot);
+      return;
+    }
+    const next = new Set(selected);
+    if (next.has(slot)) next.delete(slot);
+    else next.add(slot);
+    onPaint?.(next);
+    // Let the selected-state render commit before the parent reads its current set.
+    setTimeout(() => onPaintEnd?.(), 0);
+  };
 
   return (
-    <div className="overflow-x-auto pb-2">
+    <div className="min-w-0 pb-2">
+      {pageCount > 1 && (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Button size="icon" variant="outline" aria-label="Previous days" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}><ChevronLeft /></Button>
+          <span className="text-xs text-muted-foreground" role="status">Days {safePage * 5 + 1}–{Math.min((safePage + 1) * 5, grid.length)} of {grid.length}</span>
+          <Button size="icon" variant="outline" aria-label="Next days" disabled={safePage + 1 >= pageCount} onClick={() => setPage(safePage + 1)}><ChevronRight /></Button>
+        </div>
+      )}
       <div
-        className={cn("grid-surface grid w-full min-w-max gap-x-1", mode === "paint" ? "cursor-crosshair" : "cursor-pointer")}
-        style={{ gridTemplateColumns: `3.75rem repeat(${grid.length}, minmax(2.75rem, 1fr))` }}
+        className={cn("grid w-full touch-pan-y gap-x-1 select-none", mode === "paint" ? "cursor-crosshair" : "cursor-pointer")}
+        style={{ gridTemplateColumns: `3rem repeat(${visibleGrid.length}, minmax(0, 1fr))` }}
         onPointerDown={onDown}
         onPointerMove={onMove}
       >
         <div />
-        {grid.map((col, d) => {
+        {visibleGrid.map((col, d) => {
           const [wd, ...rest] = fmtDay(col[0] ?? 0, tz).split(", ");
           return (
             <div key={d} className="pb-2 text-center leading-tight">
@@ -110,17 +134,19 @@ export function AvailabilityGrid({
             <div className="-mt-2 pr-2 text-right text-[10px] text-muted-foreground tabular-nums">
               {r % labelEvery === 0 ? fmtTime(grid[0]?.[r] ?? 0, tz) : ""}
             </div>
-            {grid.map((col, d) => {
+            {visibleGrid.map((col, d) => {
               const slot = col[r] ?? 0;
               const isHour = (r + 1) % labelEvery === 0;
               const on = mode === "paint" ? selected?.has(slot) : false;
               const level = mode === "heat" && total > 0 ? (counts?.get(slot) ?? 0) / total : 0;
               return (
-                <div
+                <Button
                   key={d}
+                  decoration="none"
+                  variant="ghost"
                   data-slot={slot}
                   className={cn(
-                    cellH, "border-x border-t border-background transition-colors",
+                    "h-11 min-h-11 min-w-0 w-full rounded-none border-x border-t border-background p-0 transition-colors focus-visible:z-20 focus-visible:ring-inset",
                     isHour && "border-b border-b-border",
                     mode === "paint" ? (on ? "paint-on" : "bg-heat-0 hover:bg-accent") : "heat-cell",
                     highlight?.has(slot) && "outline-2 outline-offset-[-2px] outline-success",
@@ -128,10 +154,21 @@ export function AvailabilityGrid({
                     active === slot && "slot-active",
                   )}
                   style={mode === "heat" ? ({ ["--level" as string]: level } as React.CSSProperties) : undefined}
-                  aria-selected={active === slot || undefined}
+                  aria-label={`${fmtDay(slot, tz)}, ${fmtTime(slot, tz)} to ${fmtTime(slot + slotMinutes, tz)}${mode === "heat" ? `, ${counts?.get(slot) ?? 0} of ${total} available` : ""}`}
+                  aria-pressed={mode === "paint" ? !!on : active === slot}
+                  onClick={(e) => { if (mode === "heat" || e.detail === 0 || pointerType.current === "touch") toggle(slot); }}
+                  onKeyDown={(e) => {
+                    const offsets: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: visibleGrid.length, ArrowUp: -visibleGrid.length };
+                    const offset = offsets[e.key];
+                    if (offset == null) return;
+                    e.preventDefault();
+                    const cells = e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("[data-slot]");
+                    const index = r * visibleGrid.length + d;
+                    cells?.[index + offset]?.focus();
+                  }}
                 >
-                  {active === slot && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />}
-                </div>
+                  {(active === slot || on) && <Check className={cn("h-3.5 w-3.5", on && "text-primary-foreground")} strokeWidth={3} aria-hidden />}
+                </Button>
               );
             })}
           </Row>
