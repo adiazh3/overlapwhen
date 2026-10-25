@@ -11,3 +11,6 @@
 - [x] Let the first respondent close the poll early from any browser via name + PIN verification
 - [x] My polls: status badges, muted concluded polls, Active/Concluded filter, active-first sorting
 - [x] Poll page: removed Vote Results chart; Top times now show tie badges and missing attendees
+- [ ] Audit full scheduling journey and prioritize completion improvements.
+- [ ] Improve saved-response feedback, recommendation access, and mobile/keyboard grid usability.
+- [ ] Validate create → vote → recommend → lock → reopen and My Polls; record audit findings.
