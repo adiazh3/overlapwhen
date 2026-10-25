@@ -112,8 +112,10 @@ function HistoryPage() {
   }, [list, q, filter, statusFilter, sort]);
 
   const copy = async (text: string, msg: string) => {
-    await navigator.clipboard.writeText(text);
-    toast.success(msg);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(msg);
+    } catch { toast.error("Couldn't copy. Please try again."); }
   };
 
   const searching = q.trim().length > 0;
@@ -123,6 +125,7 @@ function HistoryPage() {
       <p className="eyebrow">Saved on this device</p>
       <h1 className="display-xl mt-4">My polls</h1>
       <p className="mt-2 text-muted-foreground">Every poll you've created or answered on this device appears here automatically.</p>
+      <p className="mt-2 text-xs text-muted-foreground">Statuses reflect your last visit. Open a poll to check the latest responses or confirmed time.</p>
 
       <div className="mt-4 flex gap-3 border-y py-4 text-sm">
         <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -232,7 +235,7 @@ function HistoryPage() {
                 "rounded-lg border bg-card p-4 shadow-soft transition",
                 status === "active" && "border-l-2 border-l-highlight",
                 status === "locked" && "border-primary/40",
-                concluded && "opacity-65",
+                concluded && status !== "locked" && "bg-muted/50",
               )}
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

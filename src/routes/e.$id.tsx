@@ -141,6 +141,7 @@ function EventPage() {
     if (!me || loadedFor.current === me.name.toLowerCase()) return;
     const existing = responses.find((r) => r.name.toLowerCase() === me.name.toLowerCase());
     setMine(new Set(existing?.slots ?? []));
+    setSaveState(existing ? "saved" : "idle");
     loadedFor.current = me.name.toLowerCase();
   }, [me, responses]);
 
@@ -508,7 +509,7 @@ function EventPage() {
                     )}
                   </div>
                   {!ev.closed && (
-                    <Button size="sm" variant={best ? "secondary" : "outline"} className="mt-4 w-full" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
+                    <Button size="sm" variant={best ? "secondary" : "outline"} disabled={saving || saveState === "error"} className="mt-4 w-full" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
                       <CalendarCheck /> {best ? "Lock in this time" : "Lock in"}
                     </Button>
                   )}
