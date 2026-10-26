@@ -16,6 +16,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
+import { usePollSync } from "@/hooks/use-poll-sync";
 
 function NotFoundComponent() {
   return (
@@ -106,6 +107,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <PollSync />
       <SiteHeader />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
@@ -113,4 +115,9 @@ function RootComponent() {
       <Toaster position="top-center" />
     </QueryClientProvider>
   );
+}
+
+function PollSync() {
+  usePollSync();
+  return null;
 }
