@@ -3,7 +3,6 @@ import { getEventData } from "@/lib/events.functions";
 import { syncHistoryPoll } from "@/lib/poll-history";
 
 export const POLL_CHANGED_KEY = "overlap:poll-changed";
-export const POLL_CHANGED_EVENT = "overlap-poll-changed";
 
 export const eventQuery = (id: string) => queryOptions({
   queryKey: ["event", id],
@@ -22,6 +21,5 @@ export const eventQuery = (id: string) => queryOptions({
 /** Notify other tabs only after a successful write; never send identities or PINs. */
 export async function refreshChangedPoll(client: QueryClient, id: string) {
   try { localStorage.setItem(POLL_CHANGED_KEY, JSON.stringify({ id, at: Date.now() })); } catch { /* storage may be unavailable */ }
-  window.dispatchEvent(new CustomEvent(POLL_CHANGED_EVENT, { detail: id }));
   await client.invalidateQueries({ queryKey: ["event", id], exact: true });
 }

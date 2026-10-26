@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { POLL_CHANGED_EVENT, POLL_CHANGED_KEY } from "@/lib/poll-query";
+import { POLL_CHANGED_KEY } from "@/lib/poll-query";
 
 export function usePollSync() {
   const client = useQueryClient();
@@ -10,7 +10,6 @@ export function usePollSync() {
         void client.invalidateQueries({ queryKey: ["event", id], exact: true });
       }
     };
-    const changed = (event: Event) => refresh((event as CustomEvent<unknown>).detail);
     const storage = (event: StorageEvent) => {
       if (event.key !== POLL_CHANGED_KEY || !event.newValue) return;
       try { refresh(JSON.parse(event.newValue).id); } catch { /* ignore invalid cross-tab data */ }
@@ -21,13 +20,9 @@ export function usePollSync() {
       }
     };
     window.addEventListener("storage", storage);
-    window.addEventListener(POLL_CHANGED_EVENT, changed);
-    window.addEventListener("focus", resume);
     document.addEventListener("visibilitychange", resume);
     return () => {
       window.removeEventListener("storage", storage);
-      window.removeEventListener(POLL_CHANGED_EVENT, changed);
-      window.removeEventListener("focus", resume);
       document.removeEventListener("visibilitychange", resume);
     };
   }, [client]);

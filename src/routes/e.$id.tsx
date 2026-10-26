@@ -33,7 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
 import { votePercentage } from "@/lib/poll-results";
-import { adminUpdate, checkName, saveResponse, type LockEntry, type ResponseRow } from "@/lib/events.functions";
+import { adminUpdate, checkName, saveResponse, type LockEntry } from "@/lib/events.functions";
 import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, rankTimes } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 import { recordPoll } from "@/lib/poll-history";
@@ -173,18 +173,7 @@ function EventPage() {
       const version = ++saveVersion.current;
       setSaving(true);
       await qc.cancelQueries({ queryKey: ["event", id], exact: true });
-      // optimistic
-      qc.setQueryData(eventQuery(id).queryKey, (old) => {
-        if (!old) return old;
-        const others = old.responses.filter((r) => r.name.toLowerCase() !== me.name.toLowerCase());
-        const mineRow: ResponseRow = {
-          id: old.responses.find((r) => r.name.toLowerCase() === me.name.toLowerCase())?.id ?? "local",
-          name: me.name,
-          slots: arr,
-          updated_at: new Date().toISOString(),
-        };
-        return { ...old, responses: [...others, mineRow] };
-      });
+      // Recommendations and group votes reflect confirmed writes, not unsaved choices.
       try {
         await saveQueue.current(() => save({ data: { event_id: id, name: me.name, pin: me.pin || undefined, slots: arr } }));
         if (version === saveVersion.current) {
