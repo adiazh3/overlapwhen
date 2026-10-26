@@ -14,3 +14,5 @@
 - [x] Audit full scheduling journey and prioritize completion improvements.
 - [x] Improve saved-response feedback, recommendation access, and mobile/keyboard grid usability.
 - [x] Validate create → vote → recommend → lock → reopen and My Polls; record audit findings.
+- [ ] Share scoped poll reads across views and refresh saved poll cards automatically.
+- [ ] Synchronize successful actions, show refresh failures, and verify cross-browser vote/lock/reopen/close updates.

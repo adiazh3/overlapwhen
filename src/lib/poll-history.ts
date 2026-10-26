@@ -10,6 +10,8 @@ export type HistoryEntry = {
   expiresAt?: string | undefined;
   status?: PollStatus | undefined;
   lockedStart?: string | undefined;
+  responseCount?: number | undefined;
+  syncedAt?: number | undefined;
 };
 
 const KEY = "overlap:history:v1";
@@ -42,12 +44,33 @@ export function mergeEntry(list: HistoryEntry[], e: Partial<HistoryEntry> & { id
     expiresAt: e.expiresAt ?? prev?.expiresAt,
     status: e.status ?? prev?.status,
     lockedStart: e.lockedStart ?? prev?.lockedStart,
+    responseCount: e.responseCount ?? prev?.responseCount,
+    syncedAt: e.syncedAt ?? prev?.syncedAt,
   };
   return [next, ...list.filter((x) => x.id !== e.id)];
 }
 
 export function recordPoll(e: Partial<HistoryEntry> & { id: string }) {
   setHistory(mergeEntry(getHistory(), e, Date.now()));
+}
+
+export function applyPollSnapshot(list: HistoryEntry[], poll: { id: string; title: string; expires_at: string; closed: boolean; final_start: string | null }, responseCount: number, now: number): HistoryEntry[] {
+  return list.map((entry) => entry.id !== poll.id ? entry : {
+    ...entry,
+    title: poll.title,
+    expiresAt: poll.expires_at,
+    status: Date.parse(poll.expires_at) <= now ? "expired" : poll.final_start ? "locked" : poll.closed ? "closed" : "active",
+    lockedStart: poll.final_start ?? undefined,
+    responseCount,
+    syncedAt: now,
+  });
+}
+
+/** Refresh metadata without moving cards or resurrecting removed history entries. */
+export function syncHistoryPoll(poll: Parameters<typeof applyPollSnapshot>[1], responseCount: number) {
+  const list = getHistory();
+  if (!list.some((entry) => entry.id === poll.id)) return;
+  setHistory(applyPollSnapshot(list, poll, responseCount, Date.now()));
 }
 
 export function removePoll(id: string) {
