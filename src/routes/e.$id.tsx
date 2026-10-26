@@ -80,6 +80,8 @@ function EventPage() {
   const ev = data.event;
   const responses = data.responses;
 
+  useEffect(() => { setNow(Date.now()); }, [data]);
+
   const save = useServerFn(saveResponse);
   const check = useServerFn(checkName);
   const admin = useServerFn(adminUpdate);

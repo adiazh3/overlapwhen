@@ -16,7 +16,7 @@ export function useSyncedHistory(limit?: number) {
   return {
     list,
     refreshing: queries.some((query) => query.isFetching),
-    failedIds: new Set(entries.filter((_, index) => queries[index]?.isError).map((entry) => entry.id)),
+    failedIds: new Set(entries.filter((_, index) => queries[index]?.isError || queries[index]?.data?.event === null).map((entry) => entry.id)),
     refresh: () => Promise.all(queries.map((query, index) => {
       const entry = entries[index];
       if (entry?.expiresAt && Date.parse(entry.expiresAt) <= Date.now()) return Promise.resolve();
