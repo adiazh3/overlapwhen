@@ -264,7 +264,7 @@ function HistoryPage() {
                   </div>
                   {failedIds.has(h.id) && <p className="mt-2 text-xs text-destructive">Couldn't refresh — last known details</p>}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
                   <Button size="sm" variant="outline" onClick={() => copy(url, "Link copied")}>
                     <Copy /> Copy link
                   </Button>

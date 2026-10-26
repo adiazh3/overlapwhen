@@ -28,7 +28,7 @@ export function getHistory(): HistoryEntry[] {
 }
 
 function setHistory(list: HistoryEntry[]) {
-  localStorage.setItem(KEY, JSON.stringify(list));
+  try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { return; }
   window.dispatchEvent(new Event(HISTORY_EVENT));
 }
 
