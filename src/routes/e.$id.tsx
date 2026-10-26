@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
@@ -33,26 +33,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
 import { votePercentage } from "@/lib/poll-results";
-import { adminUpdate, checkName, getEventData, saveResponse, type LockEntry, type ResponseRow } from "@/lib/events.functions";
+import { adminUpdate, checkName, saveResponse, type LockEntry } from "@/lib/events.functions";
 import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, rankTimes } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 import { recordPoll } from "@/lib/poll-history";
 import { createSerialTask } from "@/lib/serial-task";
-
-// Safari ("Load failed") and Firefox ("NetworkError") reject in-flight fetches
-// when a page reloads or the connection blips; retry those instead of erroring.
-const isNetworkError = (e: unknown) =>
-  e instanceof TypeError || (e instanceof Error && /load failed|networkerror|failed to fetch|aborted/i.test(e.message));
-
-const eventQuery = (id: string) =>
-  queryOptions({
-    queryKey: ["event", id],
-    queryFn: () => getEventData({ data: { id } }),
-    // Fresh enough to skip a duplicate fetch right after the loader; the 5s refresh keeps it live.
-    staleTime: 3000,
-    retry: (count, e) => count < 3 && isNetworkError(e),
-    retryDelay: (n) => 400 * (n + 1),
-  });
+import { eventQuery, refreshChangedPoll } from "@/lib/poll-query";
 
 export const Route = createFileRoute("/e/$id")({
   validateSearch: z.object({ admin: z.string().optional() }),
@@ -75,6 +61,7 @@ export const Route = createFileRoute("/e/$id")({
   pendingMs: 150,
   pendingComponent: PollSkeleton,
   errorComponent: PollLoadError,
+  notFoundComponent: () => <Gone title="Poll not found" body="Check the shared link and try again." />,
   component: EventPage,
 });
 
@@ -84,9 +71,16 @@ function EventPage() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const qc = useQueryClient();
-  const { data } = useSuspenseQuery(eventQuery(id));
+  const { data, isFetching, isRefetchError } = useSuspenseQuery({
+    ...eventQuery(id),
+    refetchOnMount: "always",
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
+  });
   const ev = data.event;
   const responses = data.responses;
+
+  useEffect(() => { setNow(Date.now()); }, [data]);
 
   const save = useServerFn(saveResponse);
   const check = useServerFn(checkName);
@@ -122,19 +116,6 @@ function EventPage() {
     }
   }, [id, search.admin]);
 
-  // Direct table subscriptions are intentionally denied; refresh the scoped shared-link read.
-  useEffect(() => {
-    const refresh = () => {
-      if (document.visibilityState === "visible") qc.invalidateQueries({ queryKey: ["event", id] });
-    };
-    const timer = window.setInterval(refresh, 5000);
-    window.addEventListener("focus", refresh);
-    return () => {
-      window.clearInterval(timer);
-      window.removeEventListener("focus", refresh);
-    };
-  }, [id, qc]);
-
   // Load my existing slots once identity is known
   const loadedFor = useRef<string | null>(null);
   useEffect(() => {
@@ -144,6 +125,13 @@ function EventPage() {
     setSaveState(existing ? "saved" : "idle");
     loadedFor.current = me.name.toLowerCase();
   }, [me, responses]);
+
+  // Bring this person's saved choices across browsers without overwriting unsaved edits.
+  useEffect(() => {
+    if (!me || saving || saveState === "error") return;
+    const existing = responses.find((row) => row.name.toLowerCase() === me.name.toLowerCase());
+    setMine(new Set(existing?.slots ?? []));
+  }, [me, responses, saving, saveState]);
 
   // Remember this poll in the device's "My polls" list.
   useEffect(() => {
@@ -185,24 +173,14 @@ function EventPage() {
       if (!me || !ev) return;
       const arr = [...slots].sort((a, b) => a - b);
       const version = ++saveVersion.current;
-      // optimistic
-      qc.setQueryData(eventQuery(id).queryKey, (old) => {
-        if (!old) return old;
-        const others = old.responses.filter((r) => r.name.toLowerCase() !== me.name.toLowerCase());
-        const mineRow: ResponseRow = {
-          id: old.responses.find((r) => r.name.toLowerCase() === me.name.toLowerCase())?.id ?? "local",
-          name: me.name,
-          slots: arr,
-          updated_at: new Date().toISOString(),
-        };
-        return { ...old, responses: [...others, mineRow] };
-      });
       setSaving(true);
+      await qc.cancelQueries({ queryKey: ["event", id], exact: true });
+      // Recommendations and group votes reflect confirmed writes, not unsaved choices.
       try {
         await saveQueue.current(() => save({ data: { event_id: id, name: me.name, pin: me.pin || undefined, slots: arr } }));
         if (version === saveVersion.current) {
           setSaveState("saved");
-          void qc.invalidateQueries({ queryKey: ["event", id] });
+          await refreshChangedPoll(qc, id);
         }
       } catch (e) {
         if (version === saveVersion.current) {
@@ -247,7 +225,7 @@ function EventPage() {
   async function runAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
     try {
       await admin({ data: { event_id: id, token: adminToken ?? undefined, pin: adminToken ? undefined : me?.pin || undefined, action, start, end } });
-      qc.invalidateQueries({ queryKey: ["event", id] });
+      await refreshChangedPoll(qc, id);
       if (action === "lock") setFocusFinal(true);
       toast.success(action === "lock" ? "Final time locked in" : action === "close" ? "Poll closed" : "Poll reopened");
     } catch (e) {
@@ -308,7 +286,9 @@ function EventPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <header className="mb-6 flex justify-end">
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <span role="status" className="text-xs text-muted-foreground">{isRefetchError ? "Couldn't refresh — showing last known details." : isFetching ? "Updating poll…" : "Updates automatically"}</span>
+        {isRefetchError && <Button size="sm" variant="outline" onClick={() => void qc.invalidateQueries({ queryKey: ["event", id], exact: true })}>Retry refresh</Button>}
         <Button variant="outline" size="sm" onClick={() => copy(shareUrl, "Link copied")}>
           <Copy /> Copy share link
         </Button>

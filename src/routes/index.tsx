@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useHistory } from "@/hooks/use-history";
+import { useSyncedHistory } from "@/hooks/use-synced-history";
 import { recordPoll } from "@/lib/poll-history";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -76,7 +76,7 @@ function isoDate(d: Date) {
 
 function Index() {
   const navigate = useNavigate();
-  const recent = useHistory();
+  const { list: recent } = useSyncedHistory(3);
   const create = useServerFn(createEvent);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

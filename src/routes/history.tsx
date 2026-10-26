@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Archive, CalendarClock, Clock, Copy, ExternalLink, Info, KeyRound, Lock, Search, Trash2, type LucideIcon } from "lucide-react";
+import { Archive, CalendarClock, Clock, Copy, ExternalLink, Info, KeyRound, Lock, RefreshCw, Search, Trash2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useHistory } from "@/hooks/use-history";
+import { useSyncedHistory } from "@/hooks/use-synced-history";
 import { exportCode, importCode, removePoll, type HistoryEntry, type PollStatus } from "@/lib/poll-history";
 import { cn } from "@/lib/utils";
 
@@ -78,7 +78,7 @@ function EmptyState({ Icon, title, body, cta }: { Icon: LucideIcon; title: strin
 }
 
 function HistoryPage() {
-  const list = useHistory();
+  const { list, refreshing, failedIds, refresh } = useSyncedHistory();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -125,7 +125,10 @@ function HistoryPage() {
       <p className="eyebrow">Saved on this device</p>
       <h1 className="display-xl mt-4">My polls</h1>
       <p className="mt-2 text-muted-foreground">Every poll you've created or answered on this device appears here automatically.</p>
-      <p className="mt-2 text-xs text-muted-foreground">Statuses reflect your last visit. Open a poll to check the latest responses or confirmed time.</p>
+      <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+        <span role="status">{refreshing ? "Checking latest polls…" : failedIds.size ? "Some polls couldn't refresh. Last known details shown." : list.length ? "Polls update automatically" : ""}</span>
+        {list.length > 0 && <Button size="icon" variant="ghost" aria-label="Refresh polls" disabled={refreshing} onClick={() => void refresh()}><RefreshCw className={cn("size-4", refreshing && "animate-spin")} /></Button>}
+      </div>
 
       <div className="mt-4 flex gap-3 border-y py-4 text-sm">
         <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -257,9 +260,11 @@ function HistoryPage() {
                     {h.name && <span>Answered as {h.name}</span>}
                     {days != null && status !== "expired" && <span>{days > 0 ? `Expires in ${days} day${days === 1 ? "" : "s"}` : "Expired"}</span>}
                     <span>Opened {new Date(h.lastVisitedAt).toLocaleDateString()}</span>
+                    {h.responseCount != null && <span>{h.responseCount} responded</span>}
                   </div>
+                  {failedIds.has(h.id) && <p className="mt-2 text-xs text-destructive">Couldn't refresh — last known details</p>}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
                   <Button size="sm" variant="outline" onClick={() => copy(url, "Link copied")}>
                     <Copy /> Copy link
                   </Button>
