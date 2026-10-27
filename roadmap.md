@@ -16,6 +16,6 @@
 - [x] Validate create → vote → recommend → lock → reopen and My Polls; record audit findings.
 - [x] Share scoped poll reads across views and refresh saved poll cards automatically.
 - [x] Synchronize successful actions, show refresh failures, and verify cross-browser vote/lock/reopen/close updates.
-- [ ] Rank five remaining founder-level adoption and completion improvements.
-- [ ] Implement focused creation, sharing, and decision-safety improvements within the five-credit scope.
-- [ ] Verify the full journey and deliver the Founder Product Audit.
+- [x] Rank five remaining founder-level adoption and completion improvements.
+- [x] Implement focused creation, sharing, and decision-safety improvements within the five-credit scope.
+- [x] Verify the full journey and deliver the Founder Product Audit.
