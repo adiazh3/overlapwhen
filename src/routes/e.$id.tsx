@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { recordPoll } from "@/lib/poll-history";
 import { createSerialTask } from "@/lib/serial-task";
 import { eventQuery, refreshChangedPoll } from "@/lib/poll-query";
+import { SharePoll } from "@/components/SharePoll";
 
 export const Route = createFileRoute("/e/$id")({
   validateSearch: z.object({ admin: z.string().optional() }),
@@ -93,6 +94,8 @@ function EventPage() {
   const [mine, setMine] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+  const [actionBusy, setActionBusy] = useState(false);
+  const actionInFlight = useRef(false);
   const saveQueue = useRef(createSerialTask());
   const saveVersion = useRef(0);
   const [active, setActive] = useState<number | null>(null);
@@ -216,6 +219,7 @@ function EventPage() {
   const daysLeft = now ? Math.max(0, Math.ceil((Date.parse(ev.expires_at) - now) / 86400000)) : null;
 
   function doAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
+    if (actionInFlight.current || saving || saveState === "error") return;
     if (action === "close" && !adminToken && !isFirstRespondent) return;
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     confirmedRef.current = false;
@@ -223,6 +227,9 @@ function EventPage() {
   }
 
   async function runAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
+    if (actionInFlight.current) return;
+    actionInFlight.current = true;
+    setActionBusy(true);
     try {
       await admin({ data: { event_id: id, token: adminToken ?? undefined, pin: adminToken ? undefined : me?.pin || undefined, action, start, end } });
       await refreshChangedPoll(qc, id);
@@ -230,6 +237,10 @@ function EventPage() {
       toast.success(action === "lock" ? "Final time locked in" : action === "close" ? "Poll closed" : "Poll reopened");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Something went wrong");
+      openerRef.current?.focus();
+    } finally {
+      actionInFlight.current = false;
+      setActionBusy(false);
     }
   }
 
@@ -249,6 +260,9 @@ function EventPage() {
   };
 
   const tzLabel = `${tz.replace(/_/g, " ")}${tz === viewerTz ? " (you)" : tz === ev?.timezone ? " (organizer)" : ""}`;
+  const pendingAttendees = pending?.action === "lock" && pending.start != null
+    ? responses.filter((response) => response.slots.includes(pending.start ?? -1)) : [];
+  const pendingMissing = responses.filter((response) => !pendingAttendees.includes(response));
   const confirmCopy = pending
     ? pending.action === "lock"
       ? { title: "Lock in this time?", body: `${pending.start != null && pending.end != null ? fmtRange(pending.start, pending.end, tz) : ""}. This becomes the final time for everyone and closes voting. Anyone with the link can reopen it later.`, cta: "Lock in time" }
@@ -271,6 +285,13 @@ function EventPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmCopy?.title}</AlertDialogTitle>
             <AlertDialogDescription>{confirmCopy?.body}</AlertDialogDescription>
+            {pending?.action === "lock" && (
+              <div className="space-y-2 border-t pt-3 text-sm">
+                <p className="font-semibold">{pendingAttendees.length} of {responses.length} respondents can attend</p>
+                {pendingMissing.length > 0 && <p className="text-destructive">Unavailable: {pendingMissing.map((response) => response.name).join(", ")}</p>}
+                <p className="text-muted-foreground">Only saved replies are counted. Anyone who hasn't replied is not included. No notifications are sent — share the confirmed time afterward.</p>
+              </div>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -289,10 +310,9 @@ function EventPage() {
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <span role="status" className="text-xs text-muted-foreground">{isRefetchError ? "Couldn't refresh — showing last known details." : isFetching ? "Updating poll…" : "Updates automatically"}</span>
         {isRefetchError && <Button size="sm" variant="outline" onClick={() => void qc.invalidateQueries({ queryKey: ["event", id], exact: true })}>Retry refresh</Button>}
-        <Button variant="outline" size="sm" onClick={() => copy(shareUrl, "Link copied")}>
-          <Copy /> Copy share link
-        </Button>
+        <SharePoll title={ev.title} url={shareUrl} message={`When are you free for “${ev.title}”? Pick your available times — no account needed.`} />
       </header>
+      {actionBusy && <p role="status" className="mb-4 flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" /> Updating meeting…</p>}
 
       <div className="rise-in mb-10">
         <p className="eyebrow">Poll — {ev.slot_minutes} min slots</p>
@@ -402,7 +422,7 @@ function EventPage() {
                   <p className="text-sm" role="status">{saving ? "Saving your availability…" : saveState === "error" ? "Your latest changes haven't saved. Keep this page open and retry." : saveState === "saved" ? `Availability saved · ${mine.size} block${mine.size === 1 ? "" : "s"} selected.` : "Choose at least one time you're free."}</p>
                   <div className="flex flex-wrap gap-2">
                     {saveState === "error" && <Button size="sm" disabled={saving} onClick={() => void persist(mineRef.current)}>Retry saving</Button>}
-                    {saveState === "saved" && !saving && <Button size="sm" onClick={() => copy(shareUrl, "Link copied — send it to your group")}><Copy /> Share with your group</Button>}
+                    {saveState === "saved" && !saving && <SharePoll title={ev.title} url={shareUrl} message={`When are you free for “${ev.title}”? Add your availability here — no account needed.`} label="Share with your group" variant="default" />}
                     {recs.length > 0 && <Button size="sm" variant="outline" disabled={saving || saveState === "error"} onClick={goToRecommendations}><Trophy /> Top times</Button>}
                   </div>
                 </div>
@@ -439,7 +459,7 @@ function EventPage() {
                   <PeopleList label="Missing" names={activeMissing} />
                 </div>
                 {!ev.closed && activeNames.length > 0 && (
-                  <Button size="sm" variant="default" className="mt-2" aria-label={`Lock in ${fmtRange(active, active + ev.slot_minutes, tz)}`} onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
+                  <Button size="sm" variant="default" disabled={actionBusy || saving || saveState === "error"} className="mt-2" aria-label={`Lock in ${fmtRange(active, active + ev.slot_minutes, tz)}`} onClick={() => doAdmin("lock", active, active + ev.slot_minutes)}>
                     <CalendarCheck /> Lock in this slot
                   </Button>
                 )}
@@ -489,7 +509,7 @@ function EventPage() {
                     )}
                   </div>
                   {!ev.closed && (
-                    <Button size="sm" variant={best ? "secondary" : "outline"} disabled={saving || saveState === "error"} className="mt-4 w-full" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
+                    <Button size="sm" variant={best ? "secondary" : "outline"} disabled={actionBusy || saving || saveState === "error"} className="mt-4 w-full" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
                       <CalendarCheck /> {best ? "Lock in this time" : "Lock in"}
                     </Button>
                   )}
@@ -511,7 +531,7 @@ function EventPage() {
                       <span className="text-xs tabular-nums text-muted-foreground">{r.count}/{responses.length} · {votePercentage(r.count, responses.length)}%</span>
                       <span className="hidden max-w-[14rem] truncate text-xs text-muted-foreground sm:inline" title={r.names.join(", ")}>{r.names.join(", ")}</span>
                       {!ev.closed && (
-                        <Button size="sm" variant="ghost" decoration="none" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
+                        <Button size="sm" variant="ghost" disabled={actionBusy || saving || saveState === "error"} decoration="none" aria-label={`Lock in ${fmtRange(r.start, r.end, tz)}`} onClick={() => doAdmin("lock", r.start, r.end)}>
                           <CalendarCheck /> Lock in
                         </Button>
                       )}
@@ -697,12 +717,7 @@ function FinalCard({ id, title, description, start, end, tz, onReopen, names, fo
       {names.length > 0 && <div className="mt-1 text-sm opacity-80">With {names.join(", ")}</div>}
       <p className="mt-2 text-sm text-band-muted">Voting is complete. Share the confirmed time with your group — Overlap doesn't send notifications. Anyone with the link can reopen the poll if plans change.</p>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button size="sm" variant="secondary" onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(`${title} — confirmed: ${fmtRange(start, end, tz)} (${tz}). ${window.location.origin}/e/${id}`);
-            toast.success("Confirmed time copied — send it to your group");
-          } catch { toast.error("Couldn't copy the confirmed time. Please try again."); }
-        }}><Copy /> Share confirmed time</Button>
+        <SharePoll title={title} url={`${typeof window !== "undefined" ? window.location.origin : ""}/e/${id}`} message={`${title} — confirmed: ${fmtRange(start, end, tz)} (${tz}).`} label="Share confirmed time" variant="secondary" />
         <Button asChild size="sm" variant="secondary">
           <a href={googleCalendarUrl(title, details, start, end)} target="_blank" rel="noreferrer">
             <CalendarCheck /> Add to Google Calendar
