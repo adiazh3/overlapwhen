@@ -52,6 +52,7 @@ import { Label } from "@/components/ui/label";
 import { createEvent } from "@/lib/events.functions";
 import { TimePicker } from "@/components/TimePicker";
 import { type TimeIncrement } from "@/lib/time-picker";
+import { creationWindowError } from "@/lib/creation-window";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -101,7 +102,8 @@ function Index() {
     e.preventDefault();
     if (!title.trim()) { toast.error("Give your event a name"); return; }
     if (days.length === 0) { toast.error("Pick at least one day"); return; }
-    if (endMinute <= startMinute) { toast.error("End time must be after start time"); return; }
+    const windowError = creationWindowError(startMinute, endMinute, slot);
+    if (windowError) { toast.error(windowError); return; }
     const dates = [...new Set(days.map(isoDate))].sort();
     const firstDate = dates[0];
     const lastDate = dates.at(-1);
@@ -294,7 +296,8 @@ function Index() {
             <p className="text-xs text-muted-foreground">Recommendations use this length for each meeting option.</p>
           </div>
           <p className="text-xs text-muted-foreground">Times are in {tz}. Everyone sees them in their own timezone.</p>
-          <Button type="submit" size="lg" className="w-full" disabled={busy}>
+          {creationWindowError(startMinute, endMinute, slot) && <p role="alert" className="text-sm text-destructive">{creationWindowError(startMinute, endMinute, slot)}</p>}
+          <Button type="submit" size="lg" className="w-full" disabled={busy || !today || !!creationWindowError(startMinute, endMinute, slot)}>
             {busy && <Loader2 className="animate-spin" />} Create poll
           </Button>
         </form>

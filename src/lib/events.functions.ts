@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { lockCoveredByAttendee, validatePollAction } from "@/lib/poll-actions";
+import { creationWindowError } from "@/lib/creation-window";
 
 export type EventRow = {
   id: string;
@@ -80,6 +81,7 @@ const createSchema = z
     timezone: z.string().min(1).max(64),
   })
   .refine((v) => v.end_minute > v.start_minute, "End time must be after start time")
+  .refine((v) => !creationWindowError(v.start_minute, v.end_minute, v.slot_minutes), "The time window must fit at least one complete meeting")
   .refine((v) => v.end_date >= v.start_date, "End date must be after start date")
   .refine(
     (v) => (Date.parse(v.end_date) - Date.parse(v.start_date)) / 86400000 <= 92,

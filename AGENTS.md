@@ -23,3 +23,5 @@
 - Fonts are self-hosted via @fontsource packages imported at the top of src/styles.css, never a Google Fonts <link>. Why: avoids a render-blocking third-party stylesheet and extra connections on slow phones.
 - Availability grids show five days per page with native labeled day-slot buttons and 44px rows; touch taps select and vertical swipes scroll, while mouse dragging remains available. Why: large polls stay usable without sideways scrolling or blocking phone scrolling.
 - Browser response writes use a serial queue and versioned save feedback. Why: rapid edits must not race the first response insert or report a failed write as saved.
+- Poll creation uses a shared browser-safe time-window validator in the form and server input schema. Why: prevent empty voting grids when the window is shorter than the meeting length.
+- Poll invitations and finalized-time sharing use SharePoll with native sharing and a selectable-message dialog fallback. Why: group-chat handoff must work on phones and browsers without clipboard access.
