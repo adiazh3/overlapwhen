@@ -1,4 +1,4 @@
-import { buildGrid, type EventShape } from "@/lib/slots";
+import { availabilityMinutes, buildGrid, type EventShape } from "@/lib/slots";
 
 export type PollAction = "lock" | "close" | "reopen";
 
@@ -13,13 +13,14 @@ export function validatePollAction(
   if (input.action !== "lock") return;
   const { start, end } = input;
   if (start == null || end == null || end <= start) throw new Error("Pick a time");
-  const valid = buildGrid(event).grid.some((column) => {
+  const interval = availabilityMinutes(event);
+  const valid = buildGrid(event, interval).grid.some((column) => {
     const index = column.indexOf(start);
     if (index < 0) return false;
     let boundary = start;
     for (const slot of column.slice(index)) {
       if (slot !== boundary) return false;
-      boundary += event.slot_minutes;
+      boundary += interval;
       if (boundary === end) return true;
       if (boundary > end) return false;
     }

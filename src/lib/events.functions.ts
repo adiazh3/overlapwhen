@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { lockCoveredByAttendee, validatePollAction } from "@/lib/poll-actions";
 import { creationWindowError } from "@/lib/creation-window";
+import { availabilityMinutes, buildGrid, normalizeAvailability } from "@/lib/slots";
 
 export type EventRow = {
   id: string;
@@ -24,7 +25,7 @@ export type EventRow = {
   lock_history?: LockEntry[] | null;
 };
 export type LockEntry = { at: string; start: string; end: string };
-export type ResponseRow = { id: string; name: string; slots: number[]; updated_at: string };
+export type ResponseRow = { id: string; name: string; slots: number[]; updated_at: string; availability_minutes?: number | null };
 
 function publicClient() {
   const url = process.env["SUPABASE_URL"]!;
@@ -64,7 +65,7 @@ export const getEventData = createServerFn({ method: "GET" })
     const poll = result as { event: EventRow | null; responses: ResponseRow[] };
     return {
       event: poll.event,
-      responses: (poll.responses ?? []).map((r) => ({ ...r, slots: (r.slots ?? []).map(Number) })),
+      responses: (poll.responses ?? []).map((r) => ({ ...r, slots: poll.event ? normalizeAvailability(poll.event, r) : [], availability_minutes: poll.event ? availabilityMinutes(poll.event) : r.availability_minutes })),
     };
   });
 
@@ -115,7 +116,7 @@ async function loadOpenEvent(id: string) {
 }
 
 export const saveResponse = createServerFn({ method: "POST" })
-  .inputValidator((input: { event_id: string; name: string; pin?: string | undefined; slots: number[] }) =>
+  .inputValidator((input: { event_id: string; name: string; pin?: string | undefined; slots: number[]; availability_minutes?: number }) =>
     z
       .object({
         event_id: z.string().min(1).max(40),
@@ -126,12 +127,16 @@ export const saveResponse = createServerFn({ method: "POST" })
           .optional()
           .or(z.literal("").transform(() => undefined)),
         slots: z.array(z.number().int()).max(3000),
+        availability_minutes: z.union([z.literal(15), z.literal(30)]).optional(),
       })
       .parse(input),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin, ev } = await loadOpenEvent(data.event_id);
     if (ev.closed) throw new Error("This poll is closed");
+    const valid = new Set(buildGrid(ev, data.availability_minutes ?? ev.slot_minutes).grid.flat());
+    if (data.availability_minutes && data.availability_minutes !== availabilityMinutes(ev)) throw new Error("Refresh this poll before saving your availability");
+    if (data.slots.some((slot) => !valid.has(slot))) throw new Error("Choose availability within this poll's time window");
     const pinHash = data.pin ? await sha(`${data.event_id}:${data.pin}`) : null;
     const { data: existing } = await supabaseAdmin
       .from("responses")
@@ -147,6 +152,7 @@ export const saveResponse = createServerFn({ method: "POST" })
         .from("responses")
         .update({
           slots: data.slots,
+          availability_minutes: data.availability_minutes ?? null,
           updated_at: new Date().toISOString(),
           ...(existing.pin_hash ? {} : pinHash ? { pin_hash: pinHash } : {}),
         })
@@ -161,7 +167,7 @@ export const saveResponse = createServerFn({ method: "POST" })
     if (!count && !pinHash) throw new Error("The first person to respond must set a 4-digit PIN");
     const { error } = await supabaseAdmin
       .from("responses")
-      .insert({ event_id: data.event_id, name: data.name, slots: data.slots, pin_hash: pinHash });
+      .insert({ event_id: data.event_id, name: data.name, slots: data.slots, pin_hash: pinHash, availability_minutes: data.availability_minutes ?? null });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -222,8 +228,9 @@ export const adminUpdate = createServerFn({ method: "POST" })
     let patch: { closed: boolean; final_start?: string | null; final_end?: string | null; lock_history?: Json };
     if (data.action === "lock") {
       if (data.start == null || data.end == null || data.end <= data.start) throw new Error("Pick a time");
-      const { data: rows } = await supabaseAdmin.from("responses").select("slots").eq("event_id", data.event_id);
-      if (!lockCoveredByAttendee(rows ?? [], data.start, data.end, ev.slot_minutes)) {
+      const { data: rows } = await supabaseAdmin.from("responses").select("slots,availability_minutes").eq("event_id", data.event_id);
+      const normalized = (rows ?? []).map((row) => ({ slots: normalizeAvailability(ev, { ...row, slots: row.slots.map(Number) }) }));
+      if (!lockCoveredByAttendee(normalized, data.start, data.end, availabilityMinutes(ev))) {
         throw new Error("You can only lock in a time that at least one person has selected");
       }
       const final_start = new Date(data.start * 60000).toISOString();

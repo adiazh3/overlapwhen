@@ -54,15 +54,40 @@ export function listDates(start: string, end: string, max = 31): string[] {
 }
 
 /** grid[dayIndex][rowIndex] = epoch minute */
-export function buildGrid(ev: EventShape): { dates: string[]; rows: number; grid: number[][] } {
+export function availabilityMinutes(ev: EventShape): number {
+  return ev.slot_minutes % 30 === 0 && ev.start_minute % 30 === 0 && ev.end_minute % 30 === 0 ? 30 : 15;
+}
+
+export function buildGrid(ev: EventShape, interval = ev.slot_minutes): { dates: string[]; rows: number; grid: number[][] } {
   const dates = ev.dates && ev.dates.length ? [...ev.dates].sort() : listDates(ev.start_date, ev.end_date);
-  const rows = Math.max(0, Math.floor((ev.end_minute - ev.start_minute) / ev.slot_minutes));
+  const rows = Math.max(0, Math.floor((ev.end_minute - ev.start_minute) / interval));
   const grid = dates.map((d) =>
     Array.from({ length: rows }, (_, r) =>
-      zonedToEpochMinutes(d, ev.start_minute + r * ev.slot_minutes, ev.timezone),
+      zonedToEpochMinutes(d, ev.start_minute + r * interval, ev.timezone),
     ),
   );
   return { dates, rows, grid };
+}
+
+/** Legacy keys represent entire meeting-length blocks; expand without changing stored data. */
+export function normalizeAvailability(ev: EventShape, response: { slots: number[]; availability_minutes?: number | null }) {
+  const interval = availabilityMinutes(ev);
+  const valid = new Set(buildGrid(ev, interval).grid.flat());
+  const duration = response.availability_minutes ?? ev.slot_minutes;
+  const expanded = new Set<number>();
+  for (const start of response.slots.map(Number)) {
+    for (let offset = 0; offset < duration; offset += interval) {
+      if (valid.has(start + offset)) expanded.add(start + offset);
+    }
+  }
+  return [...expanded].sort((a, b) => a - b);
+}
+
+export function availableForRange(slots: number[], start: number, end: number, interval: number): boolean {
+  if (end <= start || (end - start) % interval !== 0) return false;
+  const set = new Set(slots.map(Number));
+  for (let slot = start; slot < end; slot += interval) if (!set.has(slot)) return false;
+  return true;
 }
 
 export function isExpired(expiresAt: string, now = Date.now()): boolean {
@@ -92,15 +117,18 @@ export function rankTimes(
   grid: number[][],
   slotMinutes: number,
   responses: { name: string; slots: number[] }[],
+  interval = slotMinutes,
 ): RankedTime[] {
   const sets = responses.map((r) => ({ name: r.name, set: new Set(r.slots.map(Number)) }));
   const base: (Recommendation & { buffer: number })[] = [];
   for (const col of grid) {
     col.forEach((slot, i) => {
-      const who = sets.filter((s) => s.set.has(slot));
+      const end = slot + slotMinutes;
+      if (!col.includes(end - interval)) return;
+      const who = sets.filter((s) => availableForRange([...s.set], slot, end, interval));
       if (!who.length) return;
       const allFree = (n: number | undefined) => n != null && who.every((s) => s.set.has(n));
-      const buffer = (allFree(col[i - 1]) ? 1 : 0) + (allFree(col[i + 1]) ? 1 : 0);
+      const buffer = (allFree(col[i - 1]) ? 1 : 0) + (allFree(col[i + slotMinutes / interval]) ? 1 : 0);
       base.push({ start: slot, end: slot + slotMinutes, count: who.length, names: who.map((s) => s.name), buffer });
     });
   }
@@ -126,12 +154,14 @@ export function topTimes(
   slotMinutes: number,
   responses: { name: string; slots: number[] }[],
   n = 3,
+  interval = slotMinutes,
 ): Recommendation[] {
   const sets = responses.map((r) => ({ name: r.name, set: new Set(r.slots.map(Number)) }));
   const out: Recommendation[] = [];
   for (const col of grid) {
     for (const slot of col) {
-      const names = sets.filter((s) => s.set.has(slot)).map((s) => s.name);
+      if (!col.includes(slot + slotMinutes - interval)) continue;
+      const names = sets.filter((s) => availableForRange([...s.set], slot, slot + slotMinutes, interval)).map((s) => s.name);
       if (names.length) out.push({ start: slot, end: slot + slotMinutes, count: names.length, names });
     }
   }
