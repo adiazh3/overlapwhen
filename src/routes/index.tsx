@@ -51,7 +51,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { createEvent } from "@/lib/events.functions";
 import { TimePicker } from "@/components/TimePicker";
-import { type TimeIncrement } from "@/lib/time-picker";
 import { creationWindowError } from "@/lib/creation-window";
 
 export const Route = createFileRoute("/")({
@@ -85,7 +84,6 @@ function Index() {
   const [today, setToday] = useState<Date | null>(null);
   const [startMinute, setStartMinute] = useState(540);
   const [endMinute, setEndMinute] = useState(1260);
-  const [timeIncrement, setTimeIncrement] = useState<TimeIncrement>(15);
   const [slot, setSlot] = useState<15 | 30 | 45 | 60>(30);
   const [tz, setTz] = useState("UTC");
   const [busy, setBusy] = useState(false);
@@ -248,31 +246,14 @@ function Index() {
               />
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Label>Time increments</Label>
-            <div className="flex gap-1 rounded-full bg-muted p-1" role="group" aria-label="Time increments">
-              {([15, 60] as const).map((increment) => (
-                <Button key={increment} type="button" size="sm" className="rounded-full" variant={timeIncrement === increment ? "outline" : "ghost"}
-                  aria-pressed={timeIncrement === increment} onClick={() => {
-                    setTimeIncrement(increment);
-                    if (increment === 60) {
-                      setStartMinute(Math.floor(startMinute / 60) * 60);
-                      setEndMinute(Math.ceil(endMinute / 60) * 60);
-                    }
-                  }}>
-                  {increment === 15 ? "15 min" : "1 hour"}
-                </Button>
-              ))}
-            </div>
-          </div>
           <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="sh">No earlier than</Label>
-              <TimePicker id="sh" label="No earlier than" value={startMinute} onChange={setStartMinute} increment={timeIncrement} />
+              <TimePicker id="sh" label="No earlier than" value={startMinute} onChange={setStartMinute} increment={15} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="eh">No later than</Label>
-              <TimePicker id="eh" label="No later than" value={endMinute} onChange={setEndMinute} increment={timeIncrement} includeMidnight />
+              <TimePicker id="eh" label="No later than" value={endMinute} onChange={setEndMinute} increment={15} includeMidnight />
             </div>
           </div>
           <div className="space-y-2">
