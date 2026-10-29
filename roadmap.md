@@ -19,5 +19,5 @@
 - [x] Rank five remaining founder-level adoption and completion improvements.
 - [x] Implement focused creation, sharing, and decision-safety improvements within the five-credit scope.
 - [x] Verify the full journey and deliver the Founder Product Audit.
-- [ ] Separate availability precision from meeting length and preserve previously saved responses.
-- [ ] Verify half-hour selections, full-meeting attendance, locking, and mobile/desktop interaction.
+- [x] Separate availability precision from meeting length and preserve previously saved responses.
+- [x] Verify half-hour selections, full-meeting attendance, locking, and mobile/desktop interaction.
