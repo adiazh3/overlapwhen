@@ -56,7 +56,9 @@ describe("availability interaction", () => {
     const finish = vi.fn();
     const { container } = render(<AvailabilityGrid grid={[[start, start + 30, start + 60, start + 90]]} rows={4} slotMinutes={30} tz="UTC" mode="paint" onPaint={paint} onPaintEnd={finish} />);
     const cells = container.querySelectorAll("[data-slot]");
-    const hit = vi.spyOn(document, "elementFromPoint").mockReturnValue(cells[0] ?? null);
+    const originalHitTest = Object.getOwnPropertyDescriptor(document, "elementFromPoint");
+    const hit = vi.fn().mockReturnValue(cells[0] ?? null);
+    Object.defineProperty(document, "elementFromPoint", { configurable: true, value: hit });
     const pointer = (type: string, target: Element) => {
       const event = new Event(type, { bubbles: true });
       Object.assign(event, { pointerType: "mouse", button: 0, clientX: 10, clientY: 10 });
@@ -71,6 +73,7 @@ describe("availability interaction", () => {
     fireEvent.pointerUp(window);
     expect([...paint.mock.lastCall?.[0]]).toEqual([start, start + 30, start + 60]);
     expect(finish).toHaveBeenCalledOnce();
-    hit.mockRestore();
+    if (originalHitTest) Object.defineProperty(document, "elementFromPoint", originalHitTest);
+    else Reflect.deleteProperty(document, "elementFromPoint");
   });
 });
