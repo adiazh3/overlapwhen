@@ -34,7 +34,7 @@ import { Label } from "@/components/ui/label";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
 import { votePercentage } from "@/lib/poll-results";
 import { adminUpdate, checkName, saveResponse, type LockEntry } from "@/lib/events.functions";
-import { buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, rankTimes } from "@/lib/slots";
+import { availabilityMinutes, availableForRange, buildGrid, buildIcs, fmtRange, googleCalendarUrl, isExpired, rankTimes } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 import { recordPoll } from "@/lib/poll-history";
 import { createSerialTask } from "@/lib/serial-task";
@@ -143,7 +143,8 @@ function EventPage() {
     recordPoll({ id, title: ev.title, expiresAt: ev.expires_at, name: me?.name, role: adminToken ? "creator" : "participant", status, lockedStart: ev.final_start ?? undefined });
   }, [id, ev?.title, ev?.expires_at, ev?.final_start, ev?.closed, me?.name, adminToken]);
 
-  const shape = useMemo(() => (ev ? buildGrid(ev) : null), [ev]);
+  const interval = ev ? availabilityMinutes(ev) : 30;
+  const shape = useMemo(() => (ev ? buildGrid(ev, interval) : null), [ev, interval]);
   const tz = tzPick ?? viewerTz ?? ev?.timezone ?? "UTC";
   const tzOptions = useMemo(() => {
     const base = [
@@ -159,13 +160,13 @@ function EventPage() {
 
   const counts = useMemo(() => {
     const m = new Map<number, number>();
-    for (const r of responses) for (const s of r.slots) m.set(s, (m.get(s) ?? 0) + 1);
+    for (const r of responses) for (const s of new Set(r.slots)) m.set(s, (m.get(s) ?? 0) + 1);
     return m;
   }, [responses]);
 
   const ranked = useMemo(
-    () => (shape && ev ? rankTimes(shape.grid, ev.slot_minutes, responses) : []),
-    [shape, ev, responses],
+    () => (shape && ev ? rankTimes(shape.grid, ev.slot_minutes, responses, interval) : []),
+    [shape, ev, responses, interval],
   );
   const recs = ranked.slice(0, 3);
   const [showMore, setShowMore] = useState(false);
@@ -180,7 +181,7 @@ function EventPage() {
       await qc.cancelQueries({ queryKey: ["event", id], exact: true });
       // Recommendations and group votes reflect confirmed writes, not unsaved choices.
       try {
-        await saveQueue.current(() => save({ data: { event_id: id, name: me.name, pin: me.pin || undefined, slots: arr } }));
+        await saveQueue.current(() => save({ data: { event_id: id, name: me.name, pin: me.pin || undefined, slots: arr, availability_minutes: interval } }));
         if (version === saveVersion.current) {
           setSaveState("saved");
           await refreshChangedPoll(qc, id);
@@ -195,7 +196,7 @@ function EventPage() {
         if (version === saveVersion.current) setSaving(false);
       }
     },
-    [me, ev, id, qc, save],
+    [me, ev, id, qc, save, interval],
   );
 
   const [pending, setPending] = useState<{ action: "lock" | "close" | "reopen"; start?: number | undefined; end?: number | undefined } | null>(null);
@@ -214,8 +215,9 @@ function EventPage() {
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/e/${id}` : `/e/${id}`;
   const finalStart = ev.final_start ? Math.round(Date.parse(ev.final_start) / 60000) : null;
   const finalEnd = ev.final_end ? Math.round(Date.parse(ev.final_end) / 60000) : null;
-  const activeNames = active != null ? responses.filter((r) => r.slots.includes(active)).map((r) => r.name) : [];
-  const activeMissing = active != null ? responses.filter((r) => !r.slots.includes(active)).map((r) => r.name) : [];
+  const activeFits = active != null && shape.grid.some((column) => column.includes(active) && column.includes(active + ev.slot_minutes - interval));
+  const activeNames = active != null && activeFits ? responses.filter((r) => availableForRange(r.slots, active, active + ev.slot_minutes, interval)).map((r) => r.name) : [];
+  const activeMissing = responses.filter((r) => !activeNames.includes(r.name)).map((r) => r.name);
   const daysLeft = now ? Math.max(0, Math.ceil((Date.parse(ev.expires_at) - now) / 86400000)) : null;
 
   function doAdmin(action: "lock" | "close" | "reopen", start?: number, end?: number) {
@@ -261,7 +263,7 @@ function EventPage() {
 
   const tzLabel = `${tz.replace(/_/g, " ")}${tz === viewerTz ? " (you)" : tz === ev?.timezone ? " (organizer)" : ""}`;
   const pendingAttendees = pending?.action === "lock" && pending.start != null
-    ? responses.filter((response) => response.slots.includes(pending.start ?? -1)) : [];
+    ? responses.filter((response) => availableForRange(response.slots, pending.start ?? -1, pending.end ?? -1, interval)) : [];
   const pendingMissing = responses.filter((response) => !pendingAttendees.includes(response));
   const confirmCopy = pending
     ? pending.action === "lock"
@@ -315,7 +317,7 @@ function EventPage() {
       {actionBusy && <p role="status" className="mb-4 flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" /> Updating meeting…</p>}
 
       <div className="rise-in mb-10">
-        <p className="eyebrow">Poll — {ev.slot_minutes} min slots</p>
+        <p className="eyebrow">{ev.slot_minutes} min meeting · {interval} min availability</p>
         <h1 className="mt-3 text-4xl leading-[0.95] tracking-[-0.045em] md:text-6xl">{ev.title}</h1>
         {ev.description && <p className="mt-4 max-w-2xl text-muted-foreground">{ev.description}</p>}
         <div className="eyebrow mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -362,7 +364,7 @@ function EventPage() {
       )}
 
       {finalStart != null && finalEnd != null && (
-        <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => r.slots.includes(finalStart)).map((r) => r.name)} focusOnMount={focusFinal} onFocused={() => setFocusFinal(false)} />
+        <FinalCard id={id} title={ev.title} description={ev.description ?? ""} start={finalStart} end={finalEnd} tz={tz} onReopen={() => doAdmin("reopen")} names={responses.filter((r) => availableForRange(r.slots, finalStart, finalEnd, interval)).map((r) => r.name)} focusOnMount={focusFinal} onFocused={() => setFocusFinal(false)} />
       )}
       {(ev.lock_history?.length ?? 0) > 0 && <LockHistory entries={ev.lock_history ?? []} tz={tz} />}
       {ev.closed && finalStart == null && (
@@ -409,13 +411,13 @@ function EventPage() {
                 <span className={cn("grid size-6 shrink-0 place-items-center rounded-full text-xs", me ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>2</span>
                 <h3>Select your available times</h3>
               </div>
-              <p className="mb-3 text-sm text-muted-foreground">{me ? `Tap ${ev.slot_minutes}-minute blocks when you're free, or click and drag with a mouse. Changes save automatically.` : "Enter your name above to unlock time selection."}</p>
+              <p className="mb-3 text-sm text-muted-foreground">{me ? `Tap ${interval}-minute blocks when you're free, or click and drag with a mouse. Changes save automatically.` : "Enter your name above to unlock time selection."}</p>
               <div className="mb-3 flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5"><span className="bg-heat-0 size-3 rounded-sm border" /> Unavailable</span>
                 <span className="flex items-center gap-1.5"><span className="paint-on size-3 rounded-sm" /> Available</span>
               </div>
               <div inert={!me} className={cn(!me && "opacity-50")}>
-                <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="paint" selected={me ? mine : new Set<number>()} onPaint={me ? setMine : undefined} onPaintEnd={me ? onPaintEnd : undefined} />
+                <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={interval} tz={tz} mode="paint" selected={me ? mine : new Set<number>()} onPaint={me ? setMine : undefined} onPaintEnd={me ? onPaintEnd : undefined} />
               </div>
               {me && (
                 <div className="mt-4 space-y-3 border-t pt-4">
@@ -446,7 +448,7 @@ function EventPage() {
             ))}
             <span>{responses.length}/{responses.length} available</span>
           </div>
-          <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={ev.slot_minutes} tz={tz} mode="heat" counts={counts} total={responses.length} active={active} onActive={setActive} highlight={finalStart != null ? new Set(shape.grid.flat().filter((s) => s >= finalStart && s < (finalEnd ?? 0))) : undefined} />
+          <AvailabilityGrid grid={shape.grid} rows={shape.rows} slotMinutes={interval} tz={tz} mode="heat" counts={counts} total={responses.length} active={active} onActive={setActive} highlight={finalStart != null ? new Set(shape.grid.flat().filter((s) => s >= finalStart && s < (finalEnd ?? 0))) : undefined} />
           <div className="mt-4 border-t pt-3" aria-live="polite">
             {active == null ? (
               <p className="text-sm text-muted-foreground">Click or tap a slot to select it. Click it again to clear.</p>
@@ -464,7 +466,7 @@ function EventPage() {
                   </Button>
                 )}
                 {!ev.closed && activeNames.length === 0 && (
-                  <p className="mt-2 text-sm text-muted-foreground">Nobody is free at this time, so it can't be locked in.</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{activeFits ? `Nobody is free for the full ${ev.slot_minutes}-minute meeting here. Choose another start time.` : "There isn't enough time left in this window for a full meeting."}</p>
                 )}
               </>
             )}

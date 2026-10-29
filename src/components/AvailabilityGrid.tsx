@@ -90,7 +90,7 @@ export function AvailabilityGrid({
     if (drag.current && slot != null) apply(slot);
   };
 
-  const labelEvery = slotMinutes >= 45 ? 1 : 60 / slotMinutes;
+  const labelEvery = slotMinutes >= 30 ? 1 : 30 / slotMinutes;
   const toggle = (slot: number) => {
     if (mode === "heat") {
       onActive?.(active === slot ? null : slot);

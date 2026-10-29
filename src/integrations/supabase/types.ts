@@ -76,6 +76,7 @@ export type Database = {
       }
       responses: {
         Row: {
+          availability_minutes: number | null
           created_at: string
           event_id: string
           id: string
@@ -85,6 +86,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          availability_minutes?: number | null
           created_at?: string
           event_id: string
           id?: string
@@ -94,6 +96,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          availability_minutes?: number | null
           created_at?: string
           event_id?: string
           id?: string

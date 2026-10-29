@@ -10,6 +10,12 @@ const event = {
 const start = buildGrid(event).grid[0]?.[0] ?? 0;
 
 describe("collaborative scheduling permissions", () => {
+  it("accepts half-hour start times for a full hour meeting", () => {
+    expect(() => validatePollAction({ ...event, slot_minutes: 60 }, { action: "lock", start: start + 30, end: start + 90 })).not.toThrow();
+    expect(() => validatePollAction({ ...event, slot_minutes: 60 }, { action: "lock", start: start + 90, end: start + 150 })).toThrow();
+    expect(lockCoveredByAttendee([{ slots: [start + 30] }], start + 30, start + 90, 30)).toBe(false);
+    expect(lockCoveredByAttendee([{ slots: [start + 30, start + 60] }], start + 30, start + 90, 30)).toBe(true);
+  });
   it("allows anyone with the link to lock a proposed time without a token", () => {
     expect(() => validatePollAction(event, { action: "lock", start, end: start + 60 })).not.toThrow();
   });

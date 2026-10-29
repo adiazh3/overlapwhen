@@ -22,6 +22,13 @@
       "when": 1791931487137,
       "tag": "0002_restrict_poll_reads_to_shared_link",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793231910238,
+      "tag": "0003_response_availability_precision",
+      "breakpoints": true
     }
   ]
 }
