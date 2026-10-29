@@ -21,4 +21,4 @@
 - [x] Verify the full journey and deliver the Founder Product Audit.
 - [x] Separate availability precision from meeting length and preserve previously saved responses.
 - [x] Verify half-hour selections, full-meeting attendance, locking, and mobile/desktop interaction.
-- [ ] Preserve hour-height mouse grids with half-hour hover snapping; verify drag ranges, saved recommendations, and phone tapping/scrolling.
+- [x] Preserve hour-height mouse grids with half-hour hover snapping; verify drag ranges, saved recommendations, and phone tapping/scrolling.
