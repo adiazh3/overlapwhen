@@ -35,7 +35,7 @@ export function AvailabilityGrid({
   highlight,
   onActive,
 }: Props) {
-  const drag = useRef<{ value: boolean; set: Set<number> } | null>(null);
+  const drag = useRef<{ value: boolean; set: Set<number>; last: number } | null>(null);
   const pointerType = useRef("");
   const [page, setPage] = useState(0);
   const pageCount = Math.ceil(grid.length / 5);
@@ -66,20 +66,26 @@ export function AvailabilityGrid({
   const apply = (slot: number) => {
     if (!drag.current) return;
     const s = drag.current.set;
-    if (drag.current.value) s.add(slot);
-    else s.delete(slot);
+    // Fill skipped halves during fast vertical drags, never bridge separate days.
+    const column = visibleGrid.find((col) => col.includes(slot) && col.includes(drag.current?.last ?? NaN));
+    const between = column?.filter((time) => time >= Math.min(slot, drag.current?.last ?? slot) && time <= Math.max(slot, drag.current?.last ?? slot)) ?? [slot];
+    for (const time of between) {
+      if (drag.current.value) s.add(time);
+      else s.delete(time);
+    }
+    drag.current.last = slot;
     onPaint?.(new Set(s));
   };
 
   const onDown = (e: React.PointerEvent) => {
     pointerType.current = e.pointerType;
-    if (mode === "heat" || e.pointerType === "touch") return;
+    if (mode === "heat" || e.pointerType === "touch" || e.button !== 0 || !onPaint) return;
     const slot = slotAt(e.clientX, e.clientY);
     if (slot == null) return;
     e.preventDefault();
     (e.target as HTMLElement).closest<HTMLElement>("[data-slot]")?.focus({ preventScroll: true });
     (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-    drag.current = { value: !selected?.has(slot), set: new Set(selected) };
+    drag.current = { value: !selected?.has(slot), set: new Set(selected), last: slot };
     apply(slot);
   };
 
@@ -90,7 +96,7 @@ export function AvailabilityGrid({
     if (drag.current && slot != null) apply(slot);
   };
 
-  const labelEvery = slotMinutes >= 30 ? 1 : 30 / slotMinutes;
+  const minuteAt = (slot: number) => Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, minute: "2-digit" }).format(new Date(slot * 60000)));
   const toggle = (slot: number) => {
     if (mode === "heat") {
       onActive?.(active === slot ? null : slot);
@@ -132,11 +138,11 @@ export function AvailabilityGrid({
         {Array.from({ length: rows }, (_, r) => (
           <Row key={r}>
             <div className="-mt-2 pr-2 text-right text-[10px] text-muted-foreground tabular-nums">
-              {r % labelEvery === 0 ? fmtTime(grid[0]?.[r] ?? 0, tz) : ""}
+              {r === 0 || minuteAt(grid[0]?.[r] ?? 0) === 0 ? fmtTime(grid[0]?.[r] ?? 0, tz) : ""}
             </div>
             {visibleGrid.map((col, d) => {
               const slot = col[r] ?? 0;
-              const isHour = (r + 1) % labelEvery === 0;
+              const isHour = minuteAt(slot + slotMinutes) === 0 || r === rows - 1;
               const on = mode === "paint" ? selected?.has(slot) : false;
               const level = mode === "heat" && total > 0 ? (counts?.get(slot) ?? 0) / total : 0;
               return (
@@ -147,6 +153,8 @@ export function AvailabilityGrid({
                   data-slot={slot}
                   className={cn(
                     "h-11 min-h-11 min-w-0 w-full rounded-none border-x border-t border-background p-0 transition-colors focus-visible:z-20 focus-visible:ring-inset",
+                    slotMinutes === 30 && "half-hour-cell",
+                    mode === "paint" && onPaint && "availability-snap",
                     isHour && "border-b border-b-border",
                     mode === "paint" ? (on ? "paint-on" : "bg-heat-0 hover:bg-accent") : "heat-cell",
                     highlight?.has(slot) && "outline-2 outline-offset-[-2px] outline-success",
