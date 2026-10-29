@@ -202,6 +202,22 @@
   background-color: var(--navy);
 }
 
+/* Two selectable halves retain the familiar 44px hour on mouse devices.
+   Phones keep each half at 44px for reliable taps and native scrolling. */
+@media (pointer: fine) {
+  .half-hour-cell { height: 22px; min-height: 22px; }
+}
+@media (hover: hover) {
+  .availability-snap:hover {
+    position: relative;
+    z-index: 1;
+    outline: 2px solid var(--highlight);
+    outline-offset: -2px;
+    background-color: color-mix(in oklab, var(--highlight) 20%, var(--heat-0));
+  }
+  .availability-snap.paint-on:hover { background-color: var(--navy); }
+}
+
 @utility grid-surface {
   touch-action: none;
   user-select: none;
